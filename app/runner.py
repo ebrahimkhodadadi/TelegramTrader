@@ -1,6 +1,9 @@
 from loguru import logger
 import Configure
 import Helper
+from Telegram.Telegram import *
+import asyncio
+
 
 try:
     logger.info("Starting...")
@@ -17,6 +20,10 @@ try:
 
     # start telegram listener
     telegramSettings = cfg.Telegram
-    # telegram = Telegram(telegramSettings.api_id, telegramSettings.api_hash)
+    telegram = Telegram(telegramSettings.api_id, telegramSettings.api_hash)
+    
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(telegram.HandleMessages())
 except:
     logger.exception("Error while starting bot [app - runner.py]")
