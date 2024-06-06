@@ -25,5 +25,7 @@ try:
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.run_until_complete(telegram.HandleMessages())
+except KeyboardInterrupt:
+    logger.info("Exiting...")
 except:
     logger.exception("Error while starting bot [app - runner.py]")
