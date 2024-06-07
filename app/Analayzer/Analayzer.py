@@ -40,7 +40,6 @@ def GetFirstPrice(message):
                      message + "' for first price: \n" + e)
         return None
 
-
 def GetSecondPrice(message):
     try:
         second_match = re.findall(r'@ \d+\.\d+ - (\d+\.\d+)', message)
@@ -62,7 +61,6 @@ def GetSecondPrice(message):
         logger.error("Can't deserilize message '" +
                      message + "' for second price: \n" + e)
         return None
-
 
 def GetTakeProfit(message):
     try:
@@ -99,7 +97,6 @@ def GetTakeProfit(message):
         logger.error("Can't deserilize message '" +
                      message + "' for tp: \n" + e)
         return None
-
 
 def GetStopLoss(message):
     try:

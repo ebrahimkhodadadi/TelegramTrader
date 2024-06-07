@@ -36,7 +36,8 @@ def GetSymbol(sentence):
         if word.lower() in symbol_list:
             return word
         if (word == 'طلا' or 
-            word == 'gold'):
+            word == 'gold' or
+            word == 'انس'):
             return 'XAUUSD'
         
     return None
