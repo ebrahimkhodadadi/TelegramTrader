@@ -1,10 +1,34 @@
 from loguru import logger
 from enum import Enum
 from Analayzer import *
+import Configure
+from MetaTrader import *
+
 def Handle(messageType, text, comment):
-    actionType, firstPrice, secondPrice, takeProfit, stopLoss = parse_message(text)
-    if actionType is not None:
-        print("actionType: ", actionType)
+    actionType, symbol, firstPrice, secondPrice, takeProfit, stopLoss = parse_message(text)
+    if actionType is None:
+        return
+    
+    logger.success(f"-> New {actionType.name} Signal ({comment})")
+
+    if firstPrice is None:
+        logger.error(f"Can't open position because first price is empty ({comment})")
+        return
+    if stopLoss is None:
+        logger.error(f"Can't open position because stoploss is empty ({comment})")
+        return
+    
+    cfg = Configure.GetSettings()
+    
+    openPrice = firstPrice
+    if secondPrice is not None:
+        openPrice = (firstPrice + secondPrice) / 2
+    tp = takeProfit
+    if cfg.MetaTrader.TakeProfit is not None and cfg.MetaTrader.TakeProfit != 0:
+        tp = cfg.MetaTrader.TakeProfit
+    
+    MetaTrader.Trade(actionType, symbol, openPrice, tp, stopLoss, comment)
+
 
 class MessageType(Enum):
     New = 1
