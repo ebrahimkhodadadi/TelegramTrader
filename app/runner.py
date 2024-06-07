@@ -16,16 +16,17 @@ try:
     # config logger
     Configure.ConfigLogger()
     # Notification
-    Configure.ConfigNotification(cfg.Notification.token, cfg.Notification.chatId)
+    Configure.ConfigNotification(
+        cfg.Notification.token, cfg.Notification.chatId)
 
     # start telegram listener
     telegramSettings = cfg.Telegram
     telegram = Telegram(telegramSettings.api_id, telegramSettings.api_hash)
-    
+
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.run_until_complete(telegram.HandleMessages())
 except KeyboardInterrupt:
     logger.info("Exiting...")
-except:
-    logger.exception("Error while starting bot [app - runner.py]")
+except Exception as e:
+    logger.exception("Error while starting bot [app - runner.py]\n"+e)

@@ -11,9 +11,9 @@ def GetSettings():
     # Load settings
     if (os.getenv("ENV") == "development"):
         cfg = config_from_json(
-            "..\config\development.json", read_from_file=True)
+            "config\development.json", read_from_file=True)
     else:
         cfg = config_from_json(
-            "..\config\production.json", read_from_file=True)
+            "config\production.json", read_from_file=True)
 
     return cfg
