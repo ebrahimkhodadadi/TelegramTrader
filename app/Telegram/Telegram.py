@@ -26,10 +26,12 @@ class Telegram:
             @self.client.on(events.MessageEdited)
             async def edit_event_handler(event):
                 # await Telegram.HandleEvent(MessageType.Edited, event)
+                logger.trace('message Edited here is the detail: ' + event)
                 pass
             @self.client.on(events.MessageDeleted)
             async def delete_event_handler(event):
                 # await Telegram.HandleEvent(MessageType.Deleted, event)
+                logger.trace('message Deleted here is the detail: ' + event)
                 pass
 
             await self.client.run_until_disconnected()

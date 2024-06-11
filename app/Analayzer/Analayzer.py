@@ -1,7 +1,7 @@
+from enum import Enum
 from loguru import logger
+import json
 import re
-from Analayzer.WordList import *
-
 
 def parse_message(message):
     try:
@@ -49,13 +49,26 @@ def GetSecondPrice(message):
         if not second_match:
             second_match = re.findall(r'\d+\.\d+ - (\d+\.\d+)', message)
         if not second_match:
-            second_match = re.findall(r'(\d+\/\d+)', message)
+            second_match = re.findall(r'@(\d+)\s*-\s*(\d+)', message)
+        if second_match:
+        # Extract the second number from the first match tuple
+            second_number = float(second_match[0][1])
+        else:
+            # Try to find the pattern number/number
+            second_match = re.findall(r'(\d+/\d+)', message)
             try:
-                second_number = float(second_match[0].split('/')[1])
+                if second_match:
+                    second_number = float(second_match[0].split('/')[1])
+                else:
+                    second_number = None
             except:
-                pass
+                second_number = None
+        
         if not second_number:
+            # If no second number is found, try to find any standalone number
+            second_match = re.findall(r'\d+', message)
             second_number = float(second_match[0]) if second_match else None
+        
         return second_number
     except Exception as e:
         logger.error("Can't deserilize message '" +
@@ -79,7 +92,16 @@ def GetTakeProfit(message):
                     r'tp1\s*:\s*(\d+\.?\d*)', sentence, re.IGNORECASE)
             if not tp_match:
                 tp_match = re.search(
+                    r'tp1\s*\s*(\d+\.?\d*)', sentence, re.IGNORECASE)
+            if not tp_match:
+                tp_match = re.search(
                     r'tp\s*[-:]\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)
+            if not tp_match:
+                tp_match = re.search(
+                    r'tp\s*[:\-]?\s*(\d+\.?\d*)', message, re.IGNORECASE)
+            if not tp_match:
+                tp_match = re.search(
+                    r'checkpoint\s*1\s*:\s*(\d+\.?\d*|OPEN)', message, re.IGNORECASE)    
             if tp_match:
                 tp_numbers.append(float(tp_match.group(1)))
             if not tp_numbers:
@@ -100,6 +122,7 @@ def GetTakeProfit(message):
 
 def GetStopLoss(message):
     try:
+        message = message.lower()
         sl_numbers = []
         sentences = re.split(r'\n+', message)
         for sentence in sentences:
@@ -115,6 +138,8 @@ def GetStopLoss(message):
             if not sl_match:
                 sl_match = re.search(
                     r'sl\s*[-:]\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)
+            if not sl_match:
+                sl_match = re.search(r'sl\s*[:\-]\s*(\d+\.?\d*)', message, re.IGNORECASE)
             if sl_match:
                 sl_numbers.append(float(sl_match.group(1)))
             if not sl_numbers:
@@ -129,3 +154,46 @@ def GetStopLoss(message):
         logger.error("Can't deserilize message '" +
                      message + "' for sl: \n" + e)
         return None
+
+
+
+
+def get_main_word_actiontype(sentence):
+    buy_list = ['buy', 'بخر', 'خرید']
+    sell_list = ['sell', 'بفروش', 'فروش', 'selling',]
+
+    words = sentence.split()
+    
+    for word in words:
+        if word.lower() in buy_list:
+            return TradeType.Buy
+        elif word.lower() in sell_list:
+            return TradeType.Sell
+    
+    return None
+class TradeType(Enum):
+    Buy = 1
+    Sell = 2
+    
+
+def read_symbol_list(json_file_path):
+    try:
+        with open(json_file_path, 'r') as file:
+            data = json.load(file)
+            return data.get('SymbolList', [])
+    except Exception as e:
+        logger.exception("An error occurred while reading the symbol list JSON file")
+        return []
+    
+def GetSymbol(sentence):
+    symbol_list = read_symbol_list('data\\Symbols.json')
+    words = sentence.split()
+    for word in words:
+        if word.lower() in symbol_list:
+            return word
+        if (word == 'طلا' or 
+            word == 'gold' or
+            word == 'انس'):
+            return 'XAUUSD'
+        
+    return None
