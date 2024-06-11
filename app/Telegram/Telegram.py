@@ -23,16 +23,17 @@ class Telegram:
             @self.client.on(events.NewMessage)
             async def new_event_handler(event):
                 await Telegram.HandleEvent(MessageType.New, event)
-            # @self.client.on(events.MessageEdited)
-            # async def edit_event_handler(event):
-            #     # await Telegram.HandleEvent(MessageType.Edited, event)
-            #     logger.trace('message Edited here is the detail: ' + event)
-            #     pass
-            # @self.client.on(events.MessageDeleted)
-            # async def delete_event_handler(event):
-            #     # await Telegram.HandleEvent(MessageType.Deleted, event)
-            #     logger.trace('message Deleted here is the detail: ' + event)
-            #     pass
+            @self.client.on(events.MessageEdited)
+            async def edit_event_handler(event):
+                # await Telegram.HandleEvent(MessageType.Edited, event)
+                username, message_id, message_link =  await Telegram.GetMessageDetail(event)
+                logger.warning(f"message Edited here is the link: {message_link}")
+                pass
+            @self.client.on(events.MessageDeleted)
+            async def delete_event_handler(event):
+                # await Telegram.HandleEvent(MessageType.Deleted, event)
+                logger.warning(f"message Deleted here is the detail: {event._message_id} \n {event}")
+                pass
 
             await self.client.run_until_disconnected()
         except (OSError, AuthKeyError, RPCError, FloodWaitError, NetworkMigrateError, ServerError) as e:
