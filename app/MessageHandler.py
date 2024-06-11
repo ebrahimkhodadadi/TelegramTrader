@@ -9,7 +9,7 @@ def Handle(messageType, text, comment):
     if actionType is None:
         return
     
-    logger.success(f"-> New {actionType.name} Signal ({comment})")
+    logger.success(f"-> New {actionType.name} {symbol} Signal ({comment})")
 
     if firstPrice is None:
         logger.error(f"Can't open position because first price is empty ({comment})")

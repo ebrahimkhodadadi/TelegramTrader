@@ -3,6 +3,7 @@ from loguru import logger
 import json
 import re
 
+
 def parse_message(message):
     try:
         if message is None or len(message) < 0:
@@ -40,6 +41,7 @@ def GetFirstPrice(message):
                      message + "' for first price: \n" + e)
         return None
 
+
 def GetSecondPrice(message):
     try:
         second_match = re.findall(r'@ \d+\.\d+ - (\d+\.\d+)', message)
@@ -51,7 +53,7 @@ def GetSecondPrice(message):
         if not second_match:
             second_match = re.findall(r'@(\d+)\s*-\s*(\d+)', message)
         if second_match:
-        # Extract the second number from the first match tuple
+            # Extract the second number from the first match tuple
             second_number = float(second_match[0][1])
         else:
             # Try to find the pattern number/number
@@ -63,17 +65,18 @@ def GetSecondPrice(message):
                     second_number = None
             except:
                 second_number = None
-        
+
         if not second_number:
             # If no second number is found, try to find any standalone number
             second_match = re.findall(r'\d+', message)
             second_number = float(second_match[0]) if second_match else None
-        
+
         return second_number
     except Exception as e:
         logger.error("Can't deserilize message '" +
                      message + "' for second price: \n" + e)
         return None
+
 
 def GetTakeProfit(message):
     try:
@@ -101,7 +104,7 @@ def GetTakeProfit(message):
                     r'tp\s*[:\-]?\s*(\d+\.?\d*)', message, re.IGNORECASE)
             if not tp_match:
                 tp_match = re.search(
-                    r'checkpoint\s*1\s*:\s*(\d+\.?\d*|OPEN)', message, re.IGNORECASE)    
+                    r'checkpoint\s*1\s*:\s*(\d+\.?\d*|OPEN)', message, re.IGNORECASE)
             if tp_match:
                 tp_numbers.append(float(tp_match.group(1)))
             if not tp_numbers:
@@ -120,13 +123,14 @@ def GetTakeProfit(message):
                      message + "' for tp: \n" + e)
         return None
 
+
 def GetStopLoss(message):
     try:
         message = message.lower()
         sl_numbers = []
         sentences = re.split(r'\n+', message)
+        # sentences = message.splitlines()
         for sentence in sentences:
-            words = re.findall(r'\b\d+\b\bsl\b', sentence.lower())
             sl_match = re.search(r'sl\s*:\s*(\d+\.\d+)',
                                  sentence, re.IGNORECASE)
             if not sl_match:
@@ -137,12 +141,26 @@ def GetStopLoss(message):
                     r'STOP LOSS\s*:\s*(\d+\.?\d*)', sentence, re.IGNORECASE)
             if not sl_match:
                 sl_match = re.search(
-                    r'sl\s*[-:]\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)
+                    r'sl\s*[-:]\s*(\d+\.\d+|\d+)', sentence, re.IGNORECASE)
             if not sl_match:
-                sl_match = re.search(r'sl\s*[:\-]\s*(\d+\.?\d*)', message, re.IGNORECASE)
+                sl_match = re.search(
+                    r'sl\s*[:\-]\s*(\d+\.?\d*)', sentence, re.IGNORECASE)
+            if not sl_match:
+                sl_match = re.search(
+                    r'stop\s*loss\s*[:\-]\s*(\d+\.?\d*)', message, re.IGNORECASE)
+            if not sl_match:
+                sl_match = re.search(r'sl\s*(\d+\.?\d*)',
+                                     message, re.IGNORECASE)
+            if not sl_match:
+                sl_match = re.search(
+                    r'stop\s*loss\s*[@:]\s*(\d+\.?\d*)', message, re.IGNORECASE)
+            if not sl_match:
+                sl_match = re.search(
+                    r'استاپ\s*(\d+\.?\d*)', message, re.IGNORECASE)
             if sl_match:
                 sl_numbers.append(float(sl_match.group(1)))
             if not sl_numbers:
+                words = re.findall(r'\b\d+\b\bsl\b', sentence.lower())
                 if 'sl' in words:
                     index = words.index('sl')
                     if index < len(words) - 1:  # Check if there's a number after "sl"
@@ -150,12 +168,13 @@ def GetStopLoss(message):
                             sl_numbers.append(int(words[index + 1]))
                         except ValueError:
                             pass  # Ignore if the next word after "sl" is not a number
+
+            if sl_numbers:
+                return sl_numbers[0]
     except Exception as e:
         logger.error("Can't deserilize message '" +
                      message + "' for sl: \n" + e)
         return None
-
-
 
 
 def get_main_word_actiontype(sentence):
@@ -163,18 +182,20 @@ def get_main_word_actiontype(sentence):
     sell_list = ['sell', 'بفروش', 'فروش', 'selling',]
 
     words = sentence.split()
-    
+
     for word in words:
         if word.lower() in buy_list:
             return TradeType.Buy
         elif word.lower() in sell_list:
             return TradeType.Sell
-    
+
     return None
+
+
 class TradeType(Enum):
     Buy = 1
     Sell = 2
-    
+
 
 def read_symbol_list(json_file_path):
     try:
@@ -182,18 +203,21 @@ def read_symbol_list(json_file_path):
             data = json.load(file)
             return data.get('SymbolList', [])
     except Exception as e:
-        logger.exception("An error occurred while reading the symbol list JSON file")
+        logger.exception(
+            "An error occurred while reading the symbol list JSON file")
         return []
-    
+
+
 def GetSymbol(sentence):
     symbol_list = read_symbol_list('data\\Symbols.json')
     words = sentence.split()
     for word in words:
         if word.lower() in symbol_list:
             return word
-        if (word == 'طلا' or 
+        if (word == 'طلا' or
             word == 'gold' or
-            word == 'انس'):
+            word == 'انس' or
+            word == 'اونس'):
             return 'XAUUSD'
-        
+
     return None

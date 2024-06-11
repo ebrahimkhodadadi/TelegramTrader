@@ -12,11 +12,11 @@
     "chatId": 6746882216
   },
   "MetaTrader": {
-    "TakeProfit": 0,
-    "server": "CapitalXtendLLC-MU",
+    "TakeProfit": 15,
+    "server": "CapitalxtendLLC-MU",
     "username": 10169494,
     "password": "_6_rnj6A!F8A",
     "lot": 0.1,
-    "expirePendinOrderInMinutes": 3
+    "expirePendinOrderInMinutes": 15
   }
 }

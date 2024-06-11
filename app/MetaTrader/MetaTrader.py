@@ -11,14 +11,18 @@ class MetaTrader:
         self.user = user
         self.password = password
 
-    @logger.catch
     def Login(server, user, password):
-        # establish connection to the MetaTrader 5 terminal
-        if not mt5.initialize(login=user, server=server, password=password):
-            logger.error("MetaTrader Login failed, error code =",
-                         mt5.last_error())
+        try:
+            logger.info(f"try to login to {server} with {user}")
+            # establish connection to the MetaTrader 5 terminal
+            if not mt5.initialize(login=user, server=server, password=password):
+                logger.error("MetaTrader Login failed, error code =",
+                             mt5.last_error())
+                return False
+            return True
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
             return False
-        return True
 
     @logger.catch
     def CheckSymbol(symbol):
@@ -53,6 +57,14 @@ class MetaTrader:
         return order_type_signal
 
     @logger.catch
+    def validate(price, currentPrice):
+        currentPrice = str(int(currentPrice))
+        price = str(int(price))
+        if len(price) != len(currentPrice):
+            return currentPrice[0:-len(price)] + price
+        return price
+
+    @logger.catch
     def OpenPosition(type, lot, symbol, sl, tp, price, expirePendinOrderInMinutes, comment):
         try:
             # Get filling mode
@@ -66,8 +78,7 @@ class MetaTrader:
             point = mt5.symbol_info(symbol).point
             deviation = 20  # mt5.getSlippage(symbol)
 
-            type = MetaTrader.determine_order_type_and_price(
-                bid_price, price, type)
+            type = MetaTrader.determine_order_type_and_price(bid_price, price, type)
 
             action = mt5.TRADE_ACTION_PENDING
             if type == mt5.ORDER_TYPE_BUY or type == mt5.ORDER_TYPE_SELL:
@@ -79,16 +90,16 @@ class MetaTrader:
                 "symbol": symbol,
                 "volume": lot,
                 "type": type,
-                "price": float(price),
-                "sl": float(sl),
-                "tp": float(tp),
+                "price": float(MetaTrader.validate(price, bid_price)),
+                "sl": float(MetaTrader.validate(sl, bid_price)),
+                "tp": float(MetaTrader.validate(tp, bid_price)),
                 "type_filling": mt5.ORDER_FILLING_IOC,
                 "comment": comment,
                 "deviation": deviation,
                 "magic": 2024,
                 "type_time": mt5.ORDER_TIME_GTC,
             }
-            logger.warning("-> Open Trade: \n" + request)
+            # logger.warning("-> Open Trade: \n" + request)
 
             # expiration
             if type != mt5.ORDER_TYPE_BUY and type != mt5.ORDER_TYPE_SELL:
@@ -136,7 +147,7 @@ class MetaTrader:
                 logger.error("1. order_send failed. Exiting. ")
                 mt5.shutdown()
                 # quit()
-            logger.info("result of open position: \n"+result)
+            # logger.info("result of open position: \n"+result)
             return result
         except Exception as ex:
             logger.error(f"Unexpected error in open trade position: {ex}")
@@ -148,9 +159,10 @@ class MetaTrader:
         if MetaTrader.CheckSymbol(symbol) == False:
             return
 
-        if actionType == 1:  # buy
+        if actionType.value == 1:  # buy
             actionType = mt5.ORDER_TYPE_BUY
-        elif actionType == 2:  # sell
+        elif actionType.value == 2:  # sell
             actionType = mt5.ORDER_TYPE_BUY
 
-        MetaTrader.OpenPosition(actionType, cfg.MetaTrader.lot, symbol, sl, tp, openPrice, cfg.MetaTrader.expirePendinOrderInMinutes, comment)
+        MetaTrader.OpenPosition(actionType, cfg.MetaTrader.lot, symbol, sl,
+                                tp, openPrice, cfg.MetaTrader.expirePendinOrderInMinutes, comment)
