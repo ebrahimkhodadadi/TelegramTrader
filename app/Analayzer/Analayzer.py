@@ -44,32 +44,12 @@ def GetFirstPrice(message):
 
 def GetSecondPrice(message):
     try:
-        second_match = re.findall(r'@ \d+\.\d+ - (\d+\.\d+)', message)
-        second_number = None
-        if not second_match:
-            second_match = re.findall(r'-(\d+\.\d+)', message)
-        if not second_match:
-            second_match = re.findall(r'\d+\.\d+ - (\d+\.\d+)', message)
-        if not second_match:
-            second_match = re.findall(r'@(\d+)\s*-\s*(\d+)', message)
-        if second_match:
-            # Extract the second number from the first match tuple
-            second_number = float(second_match[0][1])
+        match = re.search(r'@\d+\.?\d*\s*-\s*(\d+\.?\d*)', message)
+    
+        if match:
+            second_number = float(match.group(1))
         else:
-            # Try to find the pattern number/number
-            second_match = re.findall(r'(\d+/\d+)', message)
-            try:
-                if second_match:
-                    second_number = float(second_match[0].split('/')[1])
-                else:
-                    second_number = None
-            except:
-                second_number = None
-
-        if not second_number:
-            # If no second number is found, try to find any standalone number
-            second_match = re.findall(r'\d+', message)
-            second_number = float(second_match[0]) if second_match else None
+            second_number = None
 
         return second_number
     except Exception as e:

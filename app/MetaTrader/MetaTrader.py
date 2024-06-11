@@ -59,9 +59,9 @@ class MetaTrader:
     @logger.catch
     def validate(price, currentPrice):
         currentPrice = str(int(currentPrice))
-        price = str(int(price))
-        if len(price) != len(currentPrice):
-            return currentPrice[0:-len(price)] + price
+        priceStr = str(int(price))
+        if len(priceStr) != len(currentPrice):
+            return currentPrice[0:-len(priceStr)] + priceStr
         return price
 
     @logger.catch
@@ -84,17 +84,20 @@ class MetaTrader:
             if type == mt5.ORDER_TYPE_BUY or type == mt5.ORDER_TYPE_SELL:
                 action = mt5.TRADE_ACTION_DEAL
 
+            openPrice = float(MetaTrader.validate(price, bid_price))
+            stopLoss = float(MetaTrader.validate(sl, bid_price))
+            takeProfit = float(MetaTrader.validate(tp, bid_price))
             # Open the trade
             request = {
                 "action": action,
                 "symbol": symbol,
                 "volume": lot,
                 "type": type,
-                "price": float(MetaTrader.validate(price, bid_price)),
-                "sl": float(MetaTrader.validate(sl, bid_price)),
-                "tp": float(MetaTrader.validate(tp, bid_price)),
+                "price": openPrice,
+                "sl": stopLoss,
+                "tp": takeProfit,
                 "type_filling": mt5.ORDER_FILLING_IOC,
-                "comment": comment,
+                "comment": comment.replace("https://t.me/", ""),
                 "deviation": deviation,
                 "magic": 2024,
                 "type_time": mt5.ORDER_TIME_GTC,
@@ -122,7 +125,9 @@ class MetaTrader:
                 if result.retcode != mt5.TRADE_RETCODE_DONE:
                     logger.error(
                         "2. order_send failed, retcode={}".format(result.retcode))
-
+                if result.retcode == 10027:
+                    logger.critical("Enable Algo Trading in MetaTrader.")
+                            
                     # Print the error message
                     error_message = mt5.last_error()
                     logger.error(f"   Error message: {error_message}")
@@ -147,7 +152,7 @@ class MetaTrader:
                 logger.error("1. order_send failed. Exiting. ")
                 mt5.shutdown()
                 # quit()
-            # logger.info("result of open position: \n"+result)
+            logger.info("result of open position: "+result.comment)
             return result
         except Exception as ex:
             logger.error(f"Unexpected error in open trade position: {ex}")
