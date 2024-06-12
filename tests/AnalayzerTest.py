@@ -38,17 +38,17 @@ class TestGetSecondPrice(unittest.TestCase):
             # Check if the result is a float or None
             self.assertTrue(isinstance(result, float), f"Failed on message:\n {message}")
             
-# class TestGetTakeProfit(unittest.TestCase):
-#     def test_get_takeprofit(self):
-#         # Get messages from the mocked JSON file
-#         messages = get_messages_from_json('data\\messages.json')
+class TestGetTakeProfit(unittest.TestCase):
+    def test_get_takeprofit(self):
+        # Get messages from the mocked JSON file
+        messages = get_messages_from_json('data\\messages.json')
         
-#         for message in messages:
-#             # print("\n--> message: \n" + message)
-#             result = GetTakeProfit(message)
-#             # print(f"-> GetTakeProfit result: {result}")
-#             # Check if the result is a float or None
-#             self.assertTrue(isinstance(result, float), f"Failed on message:\n {message}")
+        for message in messages:
+            # print("\n--> message: \n" + message)
+            result = GetTakeProfit(message)
+            # print(f"-> GetTakeProfit result: {result}")
+            # Check if the result is a float or None
+            self.assertTrue(isinstance(result, float), f"Failed on message:\n {message}")
             
 class TestGetStopLoss(unittest.TestCase):
     def test_get_stoploss(self):

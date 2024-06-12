@@ -203,7 +203,7 @@ def GetSymbol(sentence):
     words = sentence.split()
     for word in words:
         if word.upper() in symbol_list:
-            return word
+            return word.upper()
         if (word == 'طلا' or
             word == 'gold' or
             word == '#XAUUSD' or
