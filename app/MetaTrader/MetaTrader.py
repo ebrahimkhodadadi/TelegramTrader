@@ -105,14 +105,15 @@ class MetaTrader:
 
             # expiration
             if type != mt5.ORDER_TYPE_BUY and type != mt5.ORDER_TYPE_SELL:
-                symbol_info = mt5.symbol_info(symbol)
-                timestamp = symbol_info.time
-                # Calculate expiration time
-                expiration_time = datetime.fromtimestamp(
-                    timestamp) + timedelta(minutes=expirePendinOrderInMinutes)
-                expiration_timestamp = int(expiration_time.timestamp())
-                request["expiration"] = expiration_timestamp
-                request["type_time"] = mt5.ORDER_TIME_SPECIFIED
+                if expirePendinOrderInMinutes != None and expirePendinOrderInMinutes != 0:
+                    symbol_info = mt5.symbol_info(symbol)
+                    timestamp = symbol_info.time
+                    # Calculate expiration time
+                    expiration_time = datetime.fromtimestamp(
+                        timestamp) + timedelta(minutes=expirePendinOrderInMinutes)
+                    expiration_timestamp = int(expiration_time.timestamp())
+                    request["expiration"] = expiration_timestamp
+                    request["type_time"] = mt5.ORDER_TIME_SPECIFIED
                 
             logger.warning(f"-> Open Trade: \n{request}")
 
