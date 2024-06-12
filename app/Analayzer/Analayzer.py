@@ -49,7 +49,8 @@ def GetSecondPrice(message):
         if not match:
             match = re.search(r'@\s*\d+\.?\d*\s*-\s*(\d+\.?\d*)', message)
         if not match:
-            match = re.search(r'@\s*\d+\.?\d*\s*-\s*(\d+\.?\d*)|:\s*\d+\.?\d*\s*-\s*(\d+\.?\d*)', message)
+            match = re.search(
+                r'@\s*\d+\.?\d*\s*-\s*(\d+\.?\d*)|:\s*\d+\.?\d*\s*-\s*(\d+\.?\d*)', message)
         if not match:
             match = re.search(r'\b\d+\.?\d*\s*-\s*(\d+\.?\d*)', message)
         if not match:
@@ -95,6 +96,8 @@ def GetTakeProfit(message):
             if not tp_match:
                 tp_match = re.search(
                     r'checkpoint\s*1\s*:\s*(\d+\.?\d*|OPEN)', message, re.IGNORECASE)
+            if not tp_match:
+                tp_match = re.search(r'تی پی\s*(\d+)', message)
             if tp_match:
                 tp_numbers.append(float(tp_match.group(1)))
             if not tp_numbers:
@@ -208,7 +211,7 @@ def GetSymbol(sentence):
             word == 'gold' or
             word == '#XAUUSD' or
             word == 'انس' or
-            word == 'اونس'):
+                word == 'اونس'):
             return 'XAUUSD'
 
     return None
