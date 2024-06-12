@@ -129,7 +129,10 @@ class MetaTrader:
                         "2. order_send failed, retcode={}".format(result.retcode))
                 if result.retcode == 10027:
                     logger.critical("Enable Algo Trading in MetaTrader.")
-                            
+                if  result.retcode == 10016:
+                    request["sl"] = stopLoss - 10
+                    resultMinusStop = mt5.order_send(request)
+                    
                     # Print the error message
                     error_message = mt5.last_error()
                     logger.error(f"   Error message: {error_message}")

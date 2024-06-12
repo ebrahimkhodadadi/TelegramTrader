@@ -206,6 +206,7 @@ def GetSymbol(sentence):
             return word
         if (word == 'طلا' or
             word == 'gold' or
+            word == '#XAUUSD' or
             word == 'انس' or
             word == 'اونس'):
             return 'XAUUSD'
