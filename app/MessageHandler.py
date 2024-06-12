@@ -32,7 +32,7 @@ def Handle(messageType, text, comment):
     if secondPrice is not None and len(str(openPrice)) == len(str(secondPrice)):
         openPrice = (firstPrice + secondPrice) / 2
     tp = takeProfit
-    if cfg.MetaTrader.TakeProfit is not None and cfg.MetaTrader.TakeProfit != 0:
+    if cfg.MetaTrader.TakeProfit is not None and cfg.MetaTrader.TakeProfit != 0 and symbol == 'XAUUSD': 
         tp = openPrice + (cfg.MetaTrader.TakeProfit / 10)
 
     MetaTrader.Trade(actionType, symbol, openPrice, tp, stopLoss, comment)

@@ -27,9 +27,9 @@ class MetaTrader:
     @logger.catch
     def CheckSymbol(symbol):
         logger.info("Check symbol " + symbol)
-        symbol_info = mt5.symbol_info(symbol)
+        symbol_info = mt5.symbol_info(symbol.upper())
         if symbol_info is None:
-            logger.critical(symbol, "not found, can not call order_check()")
+            logger.critical(f"not found {symbol}, can not call order_check()")
             mt5.shutdown()
             return False
         # if the symbol is unavailable in MarketWatch, add it
@@ -171,5 +171,5 @@ class MetaTrader:
         elif actionType.value == 2:  # sell
             actionType = mt5.ORDER_TYPE_BUY
 
-        MetaTrader.OpenPosition(actionType, cfg.MetaTrader.lot, symbol, sl,
+        MetaTrader.OpenPosition(actionType, cfg.MetaTrader.lot, symbol.upper(), sl,
                                 tp, openPrice, cfg.MetaTrader.expirePendinOrderInMinutes, comment)
