@@ -172,7 +172,7 @@ class MetaTrader:
         if actionType.value == 1:  # buy
             actionType = mt5.ORDER_TYPE_BUY
         elif actionType.value == 2:  # sell
-            actionType = mt5.ORDER_TYPE_BUY
+            actionType = mt5.ORDER_TYPE_SELL
 
         MetaTrader.OpenPosition(actionType, cfg.MetaTrader.lot, symbol.upper(), sl,
                                 tp, openPrice, cfg.MetaTrader.expirePendinOrderInMinutes, comment)
