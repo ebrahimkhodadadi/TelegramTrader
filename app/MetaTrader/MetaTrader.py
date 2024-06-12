@@ -102,7 +102,6 @@ class MetaTrader:
                 "magic": 2024,
                 "type_time": mt5.ORDER_TIME_GTC,
             }
-            # logger.warning("-> Open Trade: \n" + request)
 
             # expiration
             if type != mt5.ORDER_TYPE_BUY and type != mt5.ORDER_TYPE_SELL:
@@ -114,6 +113,8 @@ class MetaTrader:
                 expiration_timestamp = int(expiration_time.timestamp())
                 request["expiration"] = expiration_timestamp
                 request["type_time"] = mt5.ORDER_TIME_SPECIFIED
+                
+            logger.warning(f"-> Open Trade: \n{request}")
 
             # create a open request
             # send a trading request
