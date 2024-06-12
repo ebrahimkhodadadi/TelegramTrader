@@ -16,7 +16,7 @@
     "server": "CapitalxtendLLC-MU",
     "username": 10169494,
     "password": "_6_rnj6A!F8A",
-    "lot": 0.1,
-    "expirePendinOrderInMinutes": 120
+    "lot": "2%",
+    "expirePendinOrderInMinutes": 60
   }
 }

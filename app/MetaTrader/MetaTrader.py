@@ -65,6 +65,35 @@ class MetaTrader:
         return price
 
     @logger.catch
+    def calculate_lot_size_with_prices(account_size, risk_percentage, open_price, stop_loss_price, tick_size, tick_value):
+        """
+        Calculate the lot size per account size, risk percentage, open position price, and stop loss price.
+
+        Parameters:
+        account_size (float): The total capital in the trading account.
+        risk_percentage (float): The percentage of the account size to risk on a single trade.
+        open_price (float): The open position price.
+        stop_loss_price (float): The stop loss price.
+        tick_size (float): The smallest price increment of the instrument.
+        tick_value (float): The value of a single tick.
+
+        Returns:
+        float: The calculated lot size rounded to two decimal places.
+        """
+        # Calculate the number of ticks between the open price and stop loss price
+        risk_ticks = abs(open_price - stop_loss_price) / tick_size
+
+        # Convert the number of ticks to pip value
+        risk_pips = risk_ticks  # Assuming risk_ticks are in pip units already
+
+        # Calculate the monetary risk
+        risk_amount = account_size * (risk_percentage / 100)
+
+        # Calculate lot size
+        lot_size = risk_amount / (risk_pips * tick_value)
+        return round(lot_size, 2)
+    
+    @logger.catch
     def OpenPosition(type, lot, symbol, sl, tp, price, expirePendinOrderInMinutes, comment):
         try:
             # Get filling mode
@@ -78,7 +107,8 @@ class MetaTrader:
             point = mt5.symbol_info(symbol).point
             deviation = 20  # mt5.getSlippage(symbol)
 
-            type = MetaTrader.determine_order_type_and_price(bid_price, price, type)
+            type = MetaTrader.determine_order_type_and_price(
+                bid_price, price, type)
 
             action = mt5.TRADE_ACTION_PENDING
             if type == mt5.ORDER_TYPE_BUY or type == mt5.ORDER_TYPE_SELL:
@@ -97,7 +127,8 @@ class MetaTrader:
                 "sl": stopLoss,
                 "tp": takeProfit,
                 "type_filling": mt5.ORDER_FILLING_IOC,
-                "comment": "TelegramTrader", #comment.replace("https://t.me/", ""),
+                # comment.replace("https://t.me/", ""),
+                "comment": "TelegramTrader",
                 "deviation": deviation,
                 "magic": 2024,
                 "type_time": mt5.ORDER_TIME_GTC,
@@ -114,7 +145,7 @@ class MetaTrader:
                     expiration_timestamp = int(expiration_time.timestamp())
                     request["expiration"] = expiration_timestamp
                     request["type_time"] = mt5.ORDER_TIME_SPECIFIED
-                
+
             logger.warning(f"-> Open Trade: \n{request}")
 
             # create a open request
@@ -129,10 +160,10 @@ class MetaTrader:
                         "2. order_send failed, retcode={}".format(result.retcode))
                 if result.retcode == 10027:
                     logger.critical("Enable Algo Trading in MetaTrader.")
-                if  result.retcode == 10016:
+                if result.retcode == 10016:
                     request["sl"] = stopLoss - 10
                     resultMinusStop = mt5.order_send(request)
-                    
+
                     # Print the error message
                     error_message = mt5.last_error()
                     logger.error(f"   Error message: {error_message}")
@@ -174,5 +205,16 @@ class MetaTrader:
         elif actionType.value == 2:  # sell
             actionType = mt5.ORDER_TYPE_SELL
 
-        MetaTrader.OpenPosition(actionType, cfg.MetaTrader.lot, symbol.upper(), sl,
+        # calculate lot
+        lot = None
+        if "%" in cfg.MetaTrader.lot:
+            balance = mt5.account_info().balance
+            riskPercentage = float(cfg.MetaTrader.lot.replace("%", ""))
+            tickValue = mt5.symbol_info(symbol).trade_tick_value
+            tickSize = mt5.symbol_info(symbol).trade_tick_size
+            lot = MetaTrader.calculate_lot_size_with_prices(balance, riskPercentage, openPrice, sl, tickSize, tickValue)
+        else:
+            lot = float(cfg.MetaTrader.lot)
+
+        MetaTrader.OpenPosition(actionType, lot, symbol.upper(), sl,
                                 tp, openPrice, cfg.MetaTrader.expirePendinOrderInMinutes, comment)
