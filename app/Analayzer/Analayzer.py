@@ -19,7 +19,6 @@ def parse_message(message):
         takeProfit = GetTakeProfit(message)
         stopLoss = GetStopLoss(message)
         symbol = GetSymbol(message)
-
         return actionType, symbol, firstPrice, secondPrice, takeProfit, stopLoss
     except Exception as e:
         logger.error("Error while deserilize message: \n" + e)
@@ -45,9 +44,20 @@ def GetFirstPrice(message):
 def GetSecondPrice(message):
     try:
         match = re.search(r'@\d+\.?\d*\s*-\s*(\d+\.?\d*)', message)
-    
+        if not match:
+            match = re.search(r'@\d+\.?\d*\s*-\s*(\d+\.?\d*)', message)
+        if not match:
+            match = re.search(r'@\s*\d+\.?\d*\s*-\s*(\d+\.?\d*)', message)
+        if not match:
+            match = re.search(r'@\s*\d+\.?\d*\s*-\s*(\d+\.?\d*)|:\s*\d+\.?\d*\s*-\s*(\d+\.?\d*)', message)
+        if not match:
+            match = re.search(r'\b\d+\.?\d*\s*-\s*(\d+\.?\d*)', message)
+        if not match:
+            match = re.search(r'\b\d+\b\s*و\s*(\d+)\s*فروش', message)
+        if not match:
+            match = re.search(r'\b\d+\b\s*و\s*(\d+)\s*خرید', message)
         if match:
-            second_number = float(match.group(1))
+            second_number = float(match.group(1) or match.group(2))
         else:
             second_number = None
 
@@ -192,7 +202,7 @@ def GetSymbol(sentence):
     symbol_list = read_symbol_list('data\\Symbols.json')
     words = sentence.split()
     for word in words:
-        if word.lower() in symbol_list:
+        if word.upper() in symbol_list:
             return word
         if (word == 'طلا' or
             word == 'gold' or

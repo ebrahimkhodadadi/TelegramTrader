@@ -71,7 +71,7 @@ class MetaTrader:
             # filling_mode = mt5.symbol_info(symbol).filling_mode - 1
 
             # Take ask price
-            ask_price = mt5.symbol_info_tick(symbol).ask
+            # ask_price = mt5.symbol_info_tick(symbol).ask
             # Take bid price
             bid_price = mt5.symbol_info_tick(symbol).bid
             # Take the point of the asset
@@ -97,7 +97,7 @@ class MetaTrader:
                 "sl": stopLoss,
                 "tp": takeProfit,
                 "type_filling": mt5.ORDER_FILLING_IOC,
-                "comment": comment.replace("https://t.me/", ""),
+                "comment": "TelegramTrader", #comment.replace("https://t.me/", ""),
                 "deviation": deviation,
                 "magic": 2024,
                 "type_time": mt5.ORDER_TIME_GTC,

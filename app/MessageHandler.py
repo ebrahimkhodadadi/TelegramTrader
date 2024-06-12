@@ -21,6 +21,10 @@ def Handle(messageType, text, comment):
         logger.error(
             f"Can't open position because stoploss is empty ({comment})")
         return
+    if symbol is None:
+        logger.error(
+            f"Can't open position because symbol is empty ({comment})")
+        return
 
     cfg = Configure.GetSettings()
 
