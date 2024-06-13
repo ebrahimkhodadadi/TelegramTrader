@@ -193,28 +193,34 @@ class MetaTrader:
         except Exception as ex:
             logger.error(f"Unexpected error in open trade position: {ex}")
 
-    def Trade(actionType, symbol, openPrice, tp, sl, comment):
+    def Trade(actionType, symbol, openPrice, secondPrice, tp, sl, comment):
         cfg = Configure.GetSettings()
         if MetaTrader.Login(cfg.MetaTrader.server, cfg.MetaTrader.username, cfg.MetaTrader.password) == False:
             return
         if MetaTrader.CheckSymbol(symbol) == False:
             return
-
+        
+        # action
         if actionType.value == 1:  # buy
             actionType = mt5.ORDER_TYPE_BUY
         elif actionType.value == 2:  # sell
             actionType = mt5.ORDER_TYPE_SELL
-
-        # calculate lot
+                # tp
+        if cfg.MetaTrader.TakeProfit is not None and cfg.MetaTrader.TakeProfit != 0 and symbol == 'XAUUSD': 
+            if actionType == mt5.ORDER_TYPE_BUY:
+                tp = openPrice + (cfg.MetaTrader.TakeProfit / 10)
+            elif actionType == mt5.ORDER_TYPE_SELL:
+                tp = openPrice - (cfg.MetaTrader.TakeProfit / 10)
+        # lot
         lot = None
-        if "%" in cfg.MetaTrader.lot:
-            balance = mt5.account_info().balance
-            riskPercentage = float(cfg.MetaTrader.lot.replace("%", ""))
-            tickValue = mt5.symbol_info(symbol).trade_tick_value
-            tickSize = mt5.symbol_info(symbol).trade_tick_size
-            lot = MetaTrader.calculate_lot_size_with_prices(balance, riskPercentage, openPrice, sl, tickSize, tickValue)
-        else:
-            lot = float(cfg.MetaTrader.lot)
+        balance = mt5.account_info().balance
+        riskPercentage = float(cfg.MetaTrader.lot.replace("%", ""))
+        tickValue = mt5.symbol_info(symbol).trade_tick_value
+        tickSize = mt5.symbol_info(symbol).trade_tick_size
+        lot = MetaTrader.calculate_lot_size_with_prices(balance, riskPercentage, openPrice, sl, tickSize, tickValue)
 
-        MetaTrader.OpenPosition(actionType, lot, symbol.upper(), sl,
-                                tp, openPrice, cfg.MetaTrader.expirePendinOrderInMinutes, comment)
+        MetaTrader.OpenPosition(actionType, lot, symbol.upper(), sl, tp, openPrice, cfg.MetaTrader.expirePendinOrderInMinutes, comment)
+        
+        if secondPrice is not None:
+            lot = MetaTrader.calculate_lot_size_with_prices(balance, riskPercentage, secondPrice, sl, tickSize, tickValue)
+            MetaTrader.OpenPosition(actionType, lot, symbol.upper(), sl, tp, secondPrice, cfg.MetaTrader.expirePendinOrderInMinutes, comment)
