@@ -213,5 +213,7 @@ def GetSymbol(sentence):
             word == 'انس' or
                 word == 'اونس'):
             return 'XAUUSD'
+        if word.upper() == "US30":
+            return "DJIUSD"
 
     return None
