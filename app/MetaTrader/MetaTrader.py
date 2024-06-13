@@ -6,16 +6,11 @@ from datetime import datetime, timedelta
 
 
 class MetaTrader:
-    def __init__(self, server, user, password):
-        self.server = server
-        self.user = user
-        self.password = password
-
-    def Login(server, user, password):
+    def Login(path, server, user, password):
         try:
             logger.info(f"try to login to {server} with {user}")
             # establish connection to the MetaTrader 5 terminal
-            if not mt5.initialize(login=user, server=server, password=password):
+            if not mt5.initialize(path=path, login=user, server=server, password=password):
                 logger.error("MetaTrader Login failed, error code =",
                              mt5.last_error())
                 return False
@@ -92,7 +87,7 @@ class MetaTrader:
         # Calculate lot size
         lot_size = risk_amount / (risk_pips * tick_value)
         return round(lot_size, 2)
-    
+
     @logger.catch
     def OpenPosition(type, lot, symbol, sl, tp, price, expirePendinOrderInMinutes, comment):
         try:
@@ -193,41 +188,61 @@ class MetaTrader:
         except Exception as ex:
             logger.error(f"Unexpected error in open trade position: {ex}")
 
+    class MetaTraderAccount:
+        def __init__(self, account_dict):
+            self.TakeProfit = account_dict.get('TakeProfit')
+            self.server = account_dict.get('server')
+            self.username = account_dict.get('username')
+            self.password = account_dict.get('password')
+            self.lot = account_dict.get('lot')
+            self.path = account_dict.get('path')
+            self.expirePendinOrderInMinutes = account_dict.get(
+                'expirePendinOrderInMinutes')
+
     def Trade(actionType, symbol, openPrice, secondPrice, tp, sl, comment):
         cfg = Configure.GetSettings()
-        if MetaTrader.Login(cfg.MetaTrader.server, cfg.MetaTrader.username, cfg.MetaTrader.password) == False:
-            return
-        if MetaTrader.CheckSymbol(symbol) == False:
-            return
+        meta_trader_accounts = [MetaTrader.MetaTraderAccount(
+            acc) for acc in cfg["MetaTrader"]]
         
         # action
         if actionType.value == 1:  # buy
             actionType = mt5.ORDER_TYPE_BUY
         elif actionType.value == 2:  # sell
             actionType = mt5.ORDER_TYPE_SELL
-        # tp first price
-        if cfg.MetaTrader.TakeProfit is not None and cfg.MetaTrader.TakeProfit != 0 and symbol.upper() == 'XAUUSD': 
-            if actionType == mt5.ORDER_TYPE_BUY:
-                tp = openPrice + (cfg.MetaTrader.TakeProfit / 10)
-            elif actionType == mt5.ORDER_TYPE_SELL:
-                tp = openPrice - (cfg.MetaTrader.TakeProfit / 10)
-        # lot
-        lot = None
-        balance = mt5.account_info().balance
-        riskPercentage = float(cfg.MetaTrader.lot.replace("%", ""))
-        tickValue = mt5.symbol_info(symbol).trade_tick_value
-        tickSize = mt5.symbol_info(symbol).trade_tick_size
-        lot = MetaTrader.calculate_lot_size_with_prices(balance, riskPercentage, openPrice, sl, tickSize, tickValue)
+                
+        for mtAccount in meta_trader_accounts:
+            if MetaTrader.Login(mtAccount.path, mtAccount.server, mtAccount.username, mtAccount.password) == False:
+                return
+            if MetaTrader.CheckSymbol(symbol) == False:
+                return
 
-        MetaTrader.OpenPosition(actionType, lot, symbol.upper(), sl, tp, openPrice, cfg.MetaTrader.expirePendinOrderInMinutes, comment)
-        
-        if secondPrice is not None:
-            # tp second price
-            if cfg.MetaTrader.TakeProfit is not None and cfg.MetaTrader.TakeProfit != 0 and symbol.upper() == 'XAUUSD': 
+            # tp first price
+            if mtAccount.TakeProfit is not None and mtAccount.TakeProfit != 0 and symbol.upper() == 'XAUUSD':
                 if actionType == mt5.ORDER_TYPE_BUY:
-                    tp = secondPrice + (cfg.MetaTrader.TakeProfit / 10)
+                    tp = openPrice + (mtAccount.TakeProfit / 10)
                 elif actionType == mt5.ORDER_TYPE_SELL:
-                    tp = secondPrice - (cfg.MetaTrader.TakeProfit / 10)
+                    tp = openPrice - (mtAccount.TakeProfit / 10)
+            # lot
+            lot = None
+            balance = mt5.account_info().balance
+            riskPercentage = float(mtAccount.lot.replace("%", ""))
+            tickValue = mt5.symbol_info(symbol).trade_tick_value
+            tickSize = mt5.symbol_info(symbol).trade_tick_size
+            lot = MetaTrader.calculate_lot_size_with_prices(
+                balance, riskPercentage, openPrice, sl, tickSize, tickValue)
 
-            lot = MetaTrader.calculate_lot_size_with_prices(balance, riskPercentage, secondPrice, sl, tickSize, tickValue)
-            MetaTrader.OpenPosition(actionType, lot, symbol.upper(), sl, tp, secondPrice, cfg.MetaTrader.expirePendinOrderInMinutes, comment)
+            MetaTrader.OpenPosition(actionType, lot, symbol.upper(
+            ), sl, tp, openPrice, mtAccount.expirePendinOrderInMinutes, comment)
+
+            if secondPrice is not None:
+                # tp second price
+                if mtAccount.TakeProfit is not None and mtAccount.TakeProfit != 0 and symbol.upper() == 'XAUUSD':
+                    if actionType == mt5.ORDER_TYPE_BUY:
+                        tp = secondPrice + (mtAccount.TakeProfit / 10)
+                    elif actionType == mt5.ORDER_TYPE_SELL:
+                        tp = secondPrice - (mtAccount.TakeProfit / 10)
+
+                lot = MetaTrader.calculate_lot_size_with_prices(
+                    balance, riskPercentage, secondPrice, sl, tickSize, tickValue)
+                MetaTrader.OpenPosition(actionType, lot, symbol.upper(
+                ), sl, tp, secondPrice, mtAccount.expirePendinOrderInMinutes, comment)

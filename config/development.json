@@ -11,12 +11,24 @@
     "token": "7328441575:AAFt4YnH7Ztd_pO3BfrQlqpWtCl82EQ1Oyk",
     "chatId": 6746882216
   },
-  "MetaTrader": {
-    "TakeProfit": 15,
-    "server": "CapitalxtendLLC-MU",
-    "username": 10169494,
-    "password": "_6_rnj6A!F8A",
-    "lot": "2%",
-    "expirePendinOrderInMinutes": 60
-  }
+  "MetaTrader": [
+    {
+      "TakeProfit": 0,
+      "server": "CapitalxtendLLC-MU",
+      "username": 10169494,
+      "password": "_6_rnj6A!F8A",
+      "lot": "2%",
+      "expirePendinOrderInMinutes": 60,
+      "path": "C:/Users/Trade4/Desktop/TelegramMetaTrader/terminal64.exe"
+    },
+    {
+      "TakeProfit": 15,
+      "server": "CapitalxtendLLC-MU",
+      "username": 10170278,
+      "password": "*K09*9T)vemF",
+      "lot": "2%",
+      "expirePendinOrderInMinutes": 60,
+      "path": "C:/Users/Trade4/Desktop/TelegramMetaTrader-TPStatic/terminal64.exe"
+    }
+  ]
 }
