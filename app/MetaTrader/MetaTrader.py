@@ -205,8 +205,8 @@ class MetaTrader:
             actionType = mt5.ORDER_TYPE_BUY
         elif actionType.value == 2:  # sell
             actionType = mt5.ORDER_TYPE_SELL
-                # tp
-        if cfg.MetaTrader.TakeProfit is not None and cfg.MetaTrader.TakeProfit != 0 and symbol == 'XAUUSD': 
+        # tp first price
+        if cfg.MetaTrader.TakeProfit is not None and cfg.MetaTrader.TakeProfit != 0 and symbol.upper() == 'XAUUSD': 
             if actionType == mt5.ORDER_TYPE_BUY:
                 tp = openPrice + (cfg.MetaTrader.TakeProfit / 10)
             elif actionType == mt5.ORDER_TYPE_SELL:
@@ -222,5 +222,12 @@ class MetaTrader:
         MetaTrader.OpenPosition(actionType, lot, symbol.upper(), sl, tp, openPrice, cfg.MetaTrader.expirePendinOrderInMinutes, comment)
         
         if secondPrice is not None:
+            # tp second price
+            if cfg.MetaTrader.TakeProfit is not None and cfg.MetaTrader.TakeProfit != 0 and symbol.upper() == 'XAUUSD': 
+                if actionType == mt5.ORDER_TYPE_BUY:
+                    tp = secondPrice + (cfg.MetaTrader.TakeProfit / 10)
+                elif actionType == mt5.ORDER_TYPE_SELL:
+                    tp = secondPrice - (cfg.MetaTrader.TakeProfit / 10)
+
             lot = MetaTrader.calculate_lot_size_with_prices(balance, riskPercentage, secondPrice, sl, tickSize, tickValue)
             MetaTrader.OpenPosition(actionType, lot, symbol.upper(), sl, tp, secondPrice, cfg.MetaTrader.expirePendinOrderInMinutes, comment)
