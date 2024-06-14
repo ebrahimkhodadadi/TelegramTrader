@@ -81,6 +81,8 @@ def GetTakeProfit(message):
             if not tp_match:
                 tp_match = re.search(
                     r'tp\s*:\s*(\d+\.?\d*)', sentence, re.IGNORECASE)
+            # if not tp_match:
+            #     tp_match = re.search(r'tp1\s*[:\-]\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)
             if not tp_match:
                 tp_match = re.search(
                     r'tp1\s*:\s*(\d+\.?\d*)', sentence, re.IGNORECASE)
@@ -97,10 +99,10 @@ def GetTakeProfit(message):
                 tp_match = re.search(
                     r'checkpoint\s*1\s*:\s*(\d+\.?\d*|OPEN)', message, re.IGNORECASE)
             if not tp_match:
-                tp_match = re.search(r'تی پی\s*(\d+)', message)
+                tp_match = re.search(r'تی پی\s*(\d+)', message)  
             if tp_match:
                 tp_numbers.append(float(tp_match.group(1)))
-            if not tp_numbers:
+            if not tp_numbers or tp_numbers == 1.0:
                 if 'tp' in words:
                     index = words.index('tp')
                     if index < len(words) - 1:  # Check if there's a number after "tp"
@@ -108,7 +110,7 @@ def GetTakeProfit(message):
                             tp_numbers.append(int(words[index + 1]))
                         except ValueError:
                             pass  # Ignore if the next word after "tp" is not a number
-        if len(tp_numbers) == 0:
+        if len(tp_numbers) == 0 or tp_numbers == 1.0:
             return None
         return tp_numbers[0]
     except Exception as e:
@@ -211,6 +213,7 @@ def GetSymbol(sentence):
             word == 'gold' or
             word == '#XAUUSD' or
             word == 'انس' or
+            word == 'گلد' or
                 word == 'اونس'):
             return 'XAUUSD'
         if word.upper() == "US30":

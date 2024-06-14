@@ -52,7 +52,9 @@ class MetaTrader:
         return order_type_signal
 
     @logger.catch
-    def validate(price, currentPrice):
+    def validate(price, symbol):
+        currentPrice = mt5.symbol_info_tick(symbol).bid
+        
         currentPrice = str(int(currentPrice))
         priceStr = str(int(price))
         if len(priceStr) != len(currentPrice):
@@ -109,9 +111,9 @@ class MetaTrader:
             if type == mt5.ORDER_TYPE_BUY or type == mt5.ORDER_TYPE_SELL:
                 action = mt5.TRADE_ACTION_DEAL
 
-            openPrice = float(MetaTrader.validate(price, bid_price))
-            stopLoss = float(MetaTrader.validate(sl, bid_price))
-            takeProfit = float(MetaTrader.validate(tp, bid_price))
+            openPrice = float(price)
+            stopLoss = float(sl)
+            takeProfit = float(tp)
             # Open the trade
             request = {
                 "action": action,
@@ -188,6 +190,25 @@ class MetaTrader:
         except Exception as ex:
             logger.error(f"Unexpected error in open trade position: {ex}")
 
+    @logger.catch
+    def AnyPositionByData(symbol, openPrice, sl, tp):
+        """
+        Purpose: check if any position or order already exist by this data
+        """
+        positions = mt5.positions_get(symbol=symbol)
+        if positions != None and len(positions) > 0:
+            for position in positions:
+                if (float(openPrice) == position.price_open and float(sl) == position.sl and float(tp) == position.tp):
+                    return True
+
+        orders = mt5.orders_get(symbol=symbol)
+        if orders != None and len(orders) > 0:
+            for order in orders:
+                if (float(openPrice) == order.price_open and float(sl) == order.sl and float(tp) == order.tp):
+                    return True
+
+        return False
+
     class MetaTraderAccount:
         def __init__(self, account_dict):
             self.TakeProfit = account_dict.get('TakeProfit')
@@ -203,13 +224,16 @@ class MetaTrader:
         cfg = Configure.GetSettings()
         meta_trader_accounts = [MetaTrader.MetaTraderAccount(
             acc) for acc in cfg["MetaTrader"]]
-        
+
         # action
         if actionType.value == 1:  # buy
             actionType = mt5.ORDER_TYPE_BUY
         elif actionType.value == 2:  # sell
             actionType = mt5.ORDER_TYPE_SELL
-                
+
+        if secondPrice is not None:
+            openPrice = (openPrice + secondPrice) / 2
+
         for mtAccount in meta_trader_accounts:
             if MetaTrader.Login(mtAccount.path, mtAccount.server, mtAccount.username, mtAccount.password) == False:
                 return
@@ -231,18 +255,14 @@ class MetaTrader:
             lot = MetaTrader.calculate_lot_size_with_prices(
                 balance, riskPercentage, openPrice, sl, tickSize, tickValue)
 
+            # validate
+            openPrice = MetaTrader.validate(openPrice, symbol)
+            tp = MetaTrader.validate(tp, symbol)
+            sl = MetaTrader.validate(sl, symbol)
+            
+            if MetaTrader.AnyPositionByData(symbol, openPrice, sl, tp) == True:
+                logger.info(f"position already exist: symbol={symbol}, openPrice={openPrice}, sl={sl}, tp={tp}")
+                continue
+
             MetaTrader.OpenPosition(actionType, lot, symbol.upper(
             ), sl, tp, openPrice, mtAccount.expirePendinOrderInMinutes, comment)
-
-            if secondPrice is not None:
-                # tp second price
-                if mtAccount.TakeProfit is not None and mtAccount.TakeProfit != 0 and symbol.upper() == 'XAUUSD':
-                    if actionType == mt5.ORDER_TYPE_BUY:
-                        tp = secondPrice + (mtAccount.TakeProfit / 10)
-                    elif actionType == mt5.ORDER_TYPE_SELL:
-                        tp = secondPrice - (mtAccount.TakeProfit / 10)
-
-                lot = MetaTrader.calculate_lot_size_with_prices(
-                    balance, riskPercentage, secondPrice, sl, tickSize, tickValue)
-                MetaTrader.OpenPosition(actionType, lot, symbol.upper(
-                ), sl, tp, secondPrice, mtAccount.expirePendinOrderInMinutes, comment)
