@@ -54,7 +54,7 @@ class MetaTrader:
     @logger.catch
     def validate(price, symbol):
         currentPrice = mt5.symbol_info_tick(symbol).bid
-        
+
         currentPrice = str(int(currentPrice))
         priceStr = str(int(price))
         if len(priceStr) != len(currentPrice):
@@ -88,7 +88,14 @@ class MetaTrader:
 
         # Calculate lot size
         lot_size = risk_amount / (risk_pips * tick_value)
-        return round(lot_size, 2)
+        lot_size = round(lot_size, 2)
+
+        if lot_size == 0 or lot_size == 0.00 or lot_size == 0.0:
+            logger.warning(f"risk amount is {risk_amount} more than {
+                           risk_percentage}% the lot size cant be lower than 0.01 this is on your own risk")
+            return 0.01
+
+        return lot_size
 
     @logger.catch
     def OpenPosition(type, lot, symbol, sl, tp, price, expirePendinOrderInMinutes, comment):
@@ -231,14 +238,14 @@ class MetaTrader:
         elif actionType.value == 2:  # sell
             actionType = mt5.ORDER_TYPE_SELL
 
-        if secondPrice is not None:
-            openPrice = (openPrice + secondPrice) / 2
-
         for mtAccount in meta_trader_accounts:
             if MetaTrader.Login(mtAccount.path, mtAccount.server, mtAccount.username, mtAccount.password) == False:
                 return
             if MetaTrader.CheckSymbol(symbol) == False:
                 return
+
+            if secondPrice is not None and mtAccount.HighRisk == False:
+                openPrice = (openPrice + secondPrice) / 2
 
             # tp first price
             if mtAccount.TakeProfit is not None and mtAccount.TakeProfit != 0 and symbol.upper() == 'XAUUSD':
@@ -259,10 +266,38 @@ class MetaTrader:
             openPrice = MetaTrader.validate(openPrice, symbol)
             tp = MetaTrader.validate(tp, symbol)
             sl = MetaTrader.validate(sl, symbol)
-            
-            if MetaTrader.AnyPositionByData(symbol, openPrice, sl, tp) == True:
-                logger.info(f"position already exist: symbol={symbol}, openPrice={openPrice}, sl={sl}, tp={tp}")
-                continue
 
-            MetaTrader.OpenPosition(actionType, lot, symbol.upper(
-            ), sl, tp, openPrice, mtAccount.expirePendinOrderInMinutes, comment)
+            if MetaTrader.AnyPositionByData(symbol, openPrice, sl, tp) == True:
+                logger.info(f"position already exist: symbol={
+                            symbol}, openPrice={openPrice}, sl={sl}, tp={tp}")
+            else:
+                MetaTrader.OpenPosition(actionType, lot, symbol.upper(
+                ), sl, tp, openPrice, mtAccount.expirePendinOrderInMinutes, comment)
+
+            if secondPrice is not None and mtAccount.HighRisk == True:
+                # tp first price
+                if mtAccount.TakeProfit is not None and mtAccount.TakeProfit != 0 and symbol.upper() == 'XAUUSD':
+                    if actionType == mt5.ORDER_TYPE_BUY:
+                        tp = secondPrice + (mtAccount.TakeProfit / 10)
+                    elif actionType == mt5.ORDER_TYPE_SELL:
+                        tp = secondPrice - (mtAccount.TakeProfit / 10)
+                # lot
+                lot = None
+                balance = mt5.account_info().balance
+                riskPercentage = float(mtAccount.lot.replace("%", ""))
+                tickValue = mt5.symbol_info(symbol).trade_tick_value
+                tickSize = mt5.symbol_info(symbol).trade_tick_size
+                lot = MetaTrader.calculate_lot_size_with_prices(
+                    balance, riskPercentage, secondPrice, sl, tickSize, tickValue)
+
+                # validate
+                secondPrice = MetaTrader.validate(secondPrice, symbol)
+                tp = MetaTrader.validate(tp, symbol)
+                sl = MetaTrader.validate(sl, symbol)
+
+                if MetaTrader.AnyPositionByData(symbol, secondPrice, sl, tp) == True:
+                    logger.info(f"position already exist: symbol={symbol}, secondPrice={secondPrice}, sl={sl}, tp={tp}")
+                    continue
+
+                MetaTrader.OpenPosition(actionType, lot, symbol.upper(
+                ), sl, tp, secondPrice, mtAccount.expirePendinOrderInMinutes, comment)
