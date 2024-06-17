@@ -94,9 +94,12 @@ def GetTakeProfit(message):
                     r'tp\s*[-:]\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)
             if not tp_match:
                 tp_match = re.search(
+                    r'TP\s*1\s*[-:]\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)
+            if not tp_match:
+                tp_match = re.search(
                     r'checkpoint\s*1\s*:\s*(\d+\.?\d*|OPEN)', message, re.IGNORECASE)
             if not tp_match:
-                tp_match = re.search(r'تی پی\s*(\d+)', message)  
+                tp_match = re.search(r'تی پی\s*(\d+)', message)
             if tp_match:
                 tp_numbers.append(float(tp_match.group(1)))
             if not tp_numbers or tp_numbers[0] == 1.0 or tp_numbers[0] == 1:

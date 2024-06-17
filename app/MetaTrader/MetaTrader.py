@@ -58,8 +58,8 @@ class MetaTrader:
         currentPrice = str(int(currentPrice))
         priceStr = str(int(price))
         if len(priceStr) != len(currentPrice):
-            return currentPrice[0:-len(priceStr)] + priceStr
-        return price
+            return float(currentPrice[0:-len(priceStr)] + priceStr)
+        return float(price)
 
     @logger.catch
     def calculate_lot_size_with_prices(account_size, risk_percentage, open_price, stop_loss_price, tick_size, tick_value):
