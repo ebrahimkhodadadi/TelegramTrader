@@ -77,8 +77,8 @@ class TradeType(Enum):
     Sell = 2
 
 if __name__ == '__main__':
-    LastChannelPostId = 21804
-    BaseChannelUserName = "Radin_Forex"
+    LastChannelPostId = 25266
+    BaseChannelUserName = "Forextradersignals00"
     while (True):
         URL = "https://t.me/" + BaseChannelUserName + "/" + str(LastChannelPostId) + "?embed=1&mode=tme"
         logger.info(f"Wait to get signal... ({URL})")

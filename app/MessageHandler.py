@@ -26,8 +26,6 @@ def Handle(messageType, text, comment):
             f"Can't open position because symbol is empty ({comment})")
         return
 
-    cfg = Configure.GetSettings()
-
     MetaTrader.Trade(actionType, symbol, firstPrice, secondPrice, takeProfit, stopLoss, comment)
 
 
