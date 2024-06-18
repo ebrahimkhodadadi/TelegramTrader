@@ -224,6 +224,7 @@ class MetaTrader:
             self.password = account_dict.get('password')
             self.lot = account_dict.get('lot')
             self.path = account_dict.get('path')
+            self.HighRisk = account_dict.get('HighRisk')
             self.expirePendinOrderInMinutes = account_dict.get(
                 'expirePendinOrderInMinutes')
 
