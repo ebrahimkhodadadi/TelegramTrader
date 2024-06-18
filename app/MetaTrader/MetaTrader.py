@@ -244,16 +244,18 @@ class MetaTrader:
                 return
             if MetaTrader.CheckSymbol(symbol) == False:
                 return
-
+        
+            openPriceAvg = openPrice
             if secondPrice is not None and mtAccount.HighRisk == False:
-                openPrice = (openPrice + secondPrice) / 2
+                openPriceAvg = (openPrice + secondPrice) / 2
 
             # tp first price
+            tpStatic = tp
             if mtAccount.TakeProfit is not None and mtAccount.TakeProfit != 0 and symbol.upper() == 'XAUUSD':
                 if actionType == mt5.ORDER_TYPE_BUY:
-                    tp = openPrice + (mtAccount.TakeProfit / 10)
+                    tpStatic = openPriceAvg + (mtAccount.TakeProfit / 10)
                 elif actionType == mt5.ORDER_TYPE_SELL:
-                    tp = openPrice - (mtAccount.TakeProfit / 10)
+                    tpStatic = openPriceAvg - (mtAccount.TakeProfit / 10)
             # lot
             lot = None
             balance = mt5.account_info().balance
@@ -264,24 +266,24 @@ class MetaTrader:
                 balance, riskPercentage, openPrice, sl, tickSize, tickValue)
 
             # validate
-            openPrice = MetaTrader.validate(openPrice, symbol)
-            tp = MetaTrader.validate(tp, symbol)
+            openPriceAvg = MetaTrader.validate(openPriceAvg, symbol)
+            tpStatic = MetaTrader.validate(tpStatic, symbol)
             sl = MetaTrader.validate(sl, symbol)
 
-            if MetaTrader.AnyPositionByData(symbol, openPrice, sl, tp) == True:
+            if MetaTrader.AnyPositionByData(symbol, openPriceAvg, sl, tpStatic) == True:
                 logger.info(f"position already exist: symbol={
-                            symbol}, openPrice={openPrice}, sl={sl}, tp={tp}")
+                            symbol}, openPrice={openPriceAvg}, sl={sl}, tp={tpStatic}")
             else:
                 MetaTrader.OpenPosition(actionType, lot, symbol.upper(
-                ), sl, tp, openPrice, mtAccount.expirePendinOrderInMinutes, comment)
+                ), sl, tpStatic, openPriceAvg, mtAccount.expirePendinOrderInMinutes, comment)
 
             if secondPrice is not None and mtAccount.HighRisk == True:
                 # tp first price
                 if mtAccount.TakeProfit is not None and mtAccount.TakeProfit != 0 and symbol.upper() == 'XAUUSD':
                     if actionType == mt5.ORDER_TYPE_BUY:
-                        tp = secondPrice + (mtAccount.TakeProfit / 10)
+                        tpStatic = secondPrice + (mtAccount.TakeProfit / 10)
                     elif actionType == mt5.ORDER_TYPE_SELL:
-                        tp = secondPrice - (mtAccount.TakeProfit / 10)
+                        tpStatic = secondPrice - (mtAccount.TakeProfit / 10)
                 # lot
                 lot = None
                 balance = mt5.account_info().balance
@@ -293,12 +295,12 @@ class MetaTrader:
 
                 # validate
                 secondPrice = MetaTrader.validate(secondPrice, symbol)
-                tp = MetaTrader.validate(tp, symbol)
+                tpStatic = MetaTrader.validate(tpStatic, symbol)
                 sl = MetaTrader.validate(sl, symbol)
 
-                if MetaTrader.AnyPositionByData(symbol, secondPrice, sl, tp) == True:
-                    logger.info(f"position already exist: symbol={symbol}, secondPrice={secondPrice}, sl={sl}, tp={tp}")
+                if MetaTrader.AnyPositionByData(symbol, secondPrice, sl, tpStatic) == True:
+                    logger.info(f"position already exist: symbol={symbol}, secondPrice={secondPrice}, sl={sl}, tp={tpStatic}")
                     continue
 
                 MetaTrader.OpenPosition(actionType, lot, symbol.upper(
-                ), sl, tp, secondPrice, mtAccount.expirePendinOrderInMinutes, comment)
+                ), sl, tpStatic, secondPrice, mtAccount.expirePendinOrderInMinutes, comment)
