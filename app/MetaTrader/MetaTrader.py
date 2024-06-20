@@ -62,7 +62,36 @@ class MetaTrader:
         return float(price)
 
     @logger.catch
-    def calculate_lot_size_with_prices(account_size, risk_percentage, open_price, stop_loss_price, tick_size, tick_value):
+    def calculate_new_price(symbol, price, num_points, tp, actionType):
+        """
+        Calculate a new price by adding/subtracting a number of points to/from the given price.
+        
+        Args:
+        symbol (str): The financial instrument symbol (e.g., 'EURUSD').
+        price (float): The current price of the symbol.
+        num_points (int): The number of points (ticks) to add/subtract.
+        actionType (buy or sell): Meta trader type
+        
+        Returns:
+        float: The new calculated price.
+        """
+        # validate
+        if num_points is None or num_points == 0:
+            return tp
+        # Get symbol information
+        symbol_info = mt5.symbol_info(symbol)
+        # Get the tick size
+        tick_size = symbol_info.point
+        # Calculate the new price
+        if actionType == mt5.ORDER_TYPE_BUY:
+            return price + ((num_points * 10) * tick_size)
+        elif actionType == mt5.ORDER_TYPE_SELL:
+            return price - ((num_points * 10) * tick_size)
+        
+        return price
+
+    @logger.catch
+    def calculate_lot_size_with_prices(symbol, risk_percentage, open_price, stop_loss_price):
         """
         Calculate the lot size per account size, risk percentage, open position price, and stop loss price.
 
@@ -77,6 +106,15 @@ class MetaTrader:
         Returns:
         float: The calculated lot size rounded to two decimal places.
         """
+        if '%' not in risk_percentage:
+            return float(risk_percentage)
+        
+        risk_percentage = float(risk_percentage.replace("%", ""))
+        
+        account_size = mt5.account_info().balance
+        tick_value = mt5.symbol_info(symbol).trade_tick_value
+        tick_size = mt5.symbol_info(symbol).trade_tick_size
+            
         # Calculate the number of ticks between the open price and stop loss price
         risk_ticks = abs(open_price - stop_loss_price) / tick_size
 
@@ -93,7 +131,6 @@ class MetaTrader:
         if lot_size == 0 or lot_size == 0.00 or lot_size == 0.0:
             logger.warning(f"risk amount is {risk_amount} more than {
                            risk_percentage}% the lot size cant be lower than 0.01 this is on your own risk")
-            return 0.01
 
         return lot_size
 
@@ -250,20 +287,9 @@ class MetaTrader:
                 openPriceAvg = (openPrice + secondPrice) / 2
 
             # tp first price
-            tpStatic = tp
-            if mtAccount.TakeProfit is not None and mtAccount.TakeProfit != 0 and symbol.upper() == 'XAUUSD':
-                if actionType == mt5.ORDER_TYPE_BUY:
-                    tpStatic = openPriceAvg + (mtAccount.TakeProfit / 10)
-                elif actionType == mt5.ORDER_TYPE_SELL:
-                    tpStatic = openPriceAvg - (mtAccount.TakeProfit / 10)
+            tpStatic =  MetaTrader.calculate_new_price(symbol, openPriceAvg, mtAccount.TakeProfit, tp, actionType)
             # lot
-            lot = None
-            balance = mt5.account_info().balance
-            riskPercentage = float(mtAccount.lot.replace("%", ""))
-            tickValue = mt5.symbol_info(symbol).trade_tick_value
-            tickSize = mt5.symbol_info(symbol).trade_tick_size
-            lot = MetaTrader.calculate_lot_size_with_prices(
-                balance, riskPercentage, openPrice, sl, tickSize, tickValue)
+            lot = MetaTrader.calculate_lot_size_with_prices(symbol, mtAccount.lot, openPrice, sl)
 
             # validate
             openPriceAvg = MetaTrader.validate(openPriceAvg, symbol)
@@ -279,20 +305,9 @@ class MetaTrader:
 
             if secondPrice is not None and mtAccount.HighRisk == True:
                 # tp first price
-                if mtAccount.TakeProfit is not None and mtAccount.TakeProfit != 0 and symbol.upper() == 'XAUUSD':
-                    if actionType == mt5.ORDER_TYPE_BUY:
-                        tpStatic = secondPrice + (mtAccount.TakeProfit / 10)
-                    elif actionType == mt5.ORDER_TYPE_SELL:
-                        tpStatic = secondPrice - (mtAccount.TakeProfit / 10)
+                tpStatic =  MetaTrader.calculate_new_price(symbol, openPriceAvg, mtAccount.TakeProfit, tp, actionType)
                 # lot
-                lot = None
-                balance = mt5.account_info().balance
-                riskPercentage = float(mtAccount.lot.replace("%", ""))
-                tickValue = mt5.symbol_info(symbol).trade_tick_value
-                tickSize = mt5.symbol_info(symbol).trade_tick_size
-                lot = MetaTrader.calculate_lot_size_with_prices(
-                    balance, riskPercentage, secondPrice, sl, tickSize, tickValue)
-
+                lot = MetaTrader.calculate_lot_size_with_prices(symbol, mtAccount.lot, secondPrice, sl)
                 # validate
                 secondPrice = MetaTrader.validate(secondPrice, symbol)
                 tpStatic = MetaTrader.validate(tpStatic, symbol)
