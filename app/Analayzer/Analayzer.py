@@ -99,6 +99,9 @@ def GetTakeProfit(message):
                 tp_match = re.search(
                     r'checkpoint\s*1\s*:\s*(\d+\.?\d*|OPEN)', message, re.IGNORECASE)
             if not tp_match:
+                tp_match = re.search(
+                    r'Takeprofit\s*1\s*=\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)
+            if not tp_match:
                 tp_match = re.search(r'تی پی\s*(\d+)', message)
             if tp_match:
                 tp_numbers.append(float(tp_match.group(1)))
@@ -149,6 +152,9 @@ def GetStopLoss(message):
             if not sl_match:
                 sl_match = re.search(
                     r'stop\s*loss\s*[@:]\s*(\d+\.?\d*)', message, re.IGNORECASE)
+            if not sl_match:
+                sl_match = re.search(
+                    r'Stoploss\s*=\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)
             if not sl_match:
                 sl_match = re.search(
                     r'استاپ\s*(\d+\.?\d*)', message, re.IGNORECASE)

@@ -229,6 +229,8 @@ class MetaTrader:
                 logger.error("1. order_send failed. Exiting. ")
                 mt5.shutdown()
                 # quit()
+            # logger.info(f"result: {result}")
+            logger.info(f"open position id: {result.order} for {comment}")
             logger.info("result of open position: "+result.comment)
             return result
         except Exception as ex:
@@ -284,7 +286,7 @@ class MetaTrader:
         
             openPriceAvg = openPrice
             if secondPrice is not None and mtAccount.HighRisk == False:
-                openPriceAvg = (openPrice + secondPrice) / 2
+                openPriceAvg = (MetaTrader.validate(openPrice, symbol) + MetaTrader.validate(secondPrice, symbol)) / 2
 
             # tp first price
             tpStatic =  MetaTrader.calculate_new_price(symbol, openPriceAvg, mtAccount.TakeProfit, tp, actionType)
