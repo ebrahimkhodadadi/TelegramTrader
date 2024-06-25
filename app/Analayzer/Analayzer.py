@@ -213,8 +213,9 @@ def GetSymbol(sentence):
     symbol_list = read_symbol_list('data\\Symbols.json')
     words = sentence.split()
     for word in words:
-        if word.upper() in symbol_list:
-            return word.upper()
+        word = word.upper().replace("/", "")
+        if word in symbol_list:
+            return word
         if (word == 'طلا' or
             word == 'gold' or
             word == '#XAUUSD' or
@@ -223,7 +224,7 @@ def GetSymbol(sentence):
             word == 'XAU/USD' or
                 word == 'اونس'):
             return 'XAUUSD'
-        if word.upper() == "US30":
+        if word == "US30":
             return "DJIUSD"
 
     return None
