@@ -1,4 +1,6 @@
 import logging
+from datetime import datetime, timedelta
+from telethon.tl.functions.messages import GetHistoryRequest
 from loguru import logger
 from telethon import TelegramClient, events
 from telethon.errors import RPCError, AuthKeyError
@@ -22,17 +24,17 @@ class Telegram:
 
             @self.client.on(events.NewMessage)
             async def new_event_handler(event):
-                await Telegram.HandleEvent(MessageType.New, event)
+                await self.HandleEvent(MessageType.New, event)
             @self.client.on(events.MessageEdited)
             async def edit_event_handler(event):
                 # await Telegram.HandleEvent(MessageType.Edited, event)
                 username, message_id, message_link =  await Telegram.GetMessageDetail(event)
-                logger.warning(f"message Edited here is the link: {message_link}")
+                # logger.warning(f"message Edited here is the link: {message_link}")
                 pass
             @self.client.on(events.MessageDeleted)
             async def delete_event_handler(event):
                 # await Telegram.HandleEvent(MessageType.Deleted, event)
-                logger.warning(f"message Deleted here is the detail: {event._message_id} \n {event}")
+                # logger.warning(f"message Deleted here is the detail: {event._message_id} \n {event}")
                 pass
 
             await self.client.run_until_disconnected()
@@ -46,7 +48,7 @@ class Telegram:
             self.client.disconnect()
             logger.warning("Telegram Client disconnected.")
 
-    async def HandleEvent(messageType, event):
+    async def HandleEvent(self, messageType, event):
         # get settings
         username, message_id, message_link =  await Telegram.GetMessageDetail(event)
         # validtor
@@ -60,6 +62,9 @@ class Telegram:
             if username in blackList:
                 return
         
+        # send signal to a channel
+        # await self.SendMessage(event.raw_text)
+        # open postion
         Handle(messageType, event.raw_text, message_link)
     
     async def GetMessageDetail(event):
@@ -74,3 +79,84 @@ class Telegram:
                 return username, message_id, message_link
         except:
             return None, None, None
+    
+    async def SendMessage(self, text):
+        try:
+            actionType, symbol, firstPrice, secondPrice, takeProfit, stopLoss = parse_message(text)
+            if actionType is None or firstPrice is None or stopLoss is None or symbol is None or takeProfit is None:
+                return
+            
+            if actionType.value == 1:  # buy
+                actionType = "Buy"
+            elif actionType.value == 2:  # sell
+                actionType = "Sell"
+                
+            if await self.check_duplicate_signal(symbol, firstPrice, stopLoss, takeProfit):
+                return
+
+            # Send signal to channel
+            cfg = Configure.GetSettings()
+
+            if secondPrice is not None:
+                firstPrice = str(firstPrice) + " - " + str(secondPrice)
+
+            message_template = {
+                "message": "🚀 **Forex Signal Alert!** 🚀\n\n"
+               "**Pair:** {pair}\n"
+               "**Action:** {action}\n"
+               "**Entry Price:** {entry_price}\n"
+               "**Stop Loss:** {stop_loss}\n"
+               "**Take Profit:** {take_profit}\n\n"
+               "Join our channel for more signals and updates!\n\n"
+               "{channel_link}"
+            }
+
+            formatted_message = message_template["message"].format(
+                pair=symbol,
+                action=actionType,
+                entry_price=firstPrice,
+                stop_loss=stopLoss,
+                take_profit=takeProfit,
+                channel_link='@'+cfg.Telegram.SignalChannel
+            )
+
+            await self.client.send_message(entity=cfg.Telegram.SignalChannel, message=formatted_message)
+        except Exception as e:
+            logger.exception(f"Error while SendMessage\n{e}")
+            
+    async def check_duplicate_signal(self, symbol, entry_price, stop_loss, take_profit):
+        try:
+            cfg = Configure.GetSettings()
+            
+            # Get channel entity
+            channel_entity = await self.client.get_input_entity(cfg.Telegram.SignalChannel)
+            
+            # Calculate time boundaries for the last 2 hour
+            now = datetime.now()
+            last_hour = now - timedelta(hours=2)
+            
+            # Get messages from the last hour
+            messages = await self.client(GetHistoryRequest(
+                peer=channel_entity,
+                offset_id=0,
+                offset_date=last_hour,
+                add_offset=0,
+                limit=100,
+                max_id=0,
+                min_id=0,
+                hash=0
+            ))
+            
+            # Check if there are any messages matching the signal parameters
+            for message in messages.messages:
+                if message is None or message.message is None:
+                    continue
+                if (str(symbol) in message.message and
+                    str(entry_price) in message.message and
+                    str(stop_loss) in message.message and
+                    str(take_profit) in message.message):
+                    return True
+            
+            return False
+        except Exception as e:
+            logger.exception("Error while checking duplicate signal\n"+str(e))

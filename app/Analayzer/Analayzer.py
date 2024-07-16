@@ -27,6 +27,7 @@ def parse_message(message):
 
 def GetFirstPrice(message):
     try:
+        message = message.upper().replace("US30", "DJIUSD")
         match = re.findall(r'(\d+(?:\.\d+)?)', message)
         openPrice = None
         if not match:
@@ -154,7 +155,9 @@ def GetStopLoss(message):
                     r'stop\s*loss\s*[@:]\s*(\d+\.?\d*)', message, re.IGNORECASE)
             if not sl_match:
                 sl_match = re.search(
-                    r'Stoploss\s*=\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)
+                    r'Stoploss\s*=\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)  
+            if not sl_match:
+                sl_match = re.search(r'SL\s*@\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)
             if not sl_match:
                 sl_match = re.search(
                     r'استاپ\s*(\d+\.?\d*)', message, re.IGNORECASE)
@@ -213,18 +216,22 @@ def GetSymbol(sentence):
     symbol_list = read_symbol_list('data\\Symbols.json')
     words = sentence.split()
     for word in words:
-        word = word.upper().replace("/", "")
-        if word in symbol_list:
-            return word
+        word = word.replace("/", "").replace("-", "")
+        if word.upper() in symbol_list:
+            return word.upper()
         if (word == 'طلا' or
             word == 'gold' or
+            word == 'Gold' or
+            word == 'GOLD' or
             word == '#XAUUSD' or
             word == 'انس' or
             word == 'گلد' or
             word == 'XAU/USD' or
                 word == 'اونس'):
             return 'XAUUSD'
-        if word == "US30":
+        if word.upper() == "US30":
             return "DJIUSD"
+        if word.upper() == "NASDAQ":
+            return "NDAQ"
 
     return None

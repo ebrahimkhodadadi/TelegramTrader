@@ -3,7 +3,7 @@ from enum import Enum
 from Analayzer import *
 import Configure
 from MetaTrader import *
-
+import asyncio
 
 def Handle(messageType, text, comment):
     actionType, symbol, firstPrice, secondPrice, takeProfit, stopLoss = parse_message(
@@ -25,7 +25,9 @@ def Handle(messageType, text, comment):
         logger.error(
             f"Can't open position because symbol is empty ({comment})")
         return
-
+    
+    # Open Position
+    MetaTraderBetween.Trade(actionType, symbol, firstPrice, secondPrice, takeProfit, stopLoss, comment)
     MetaTrader.Trade(actionType, symbol, firstPrice, secondPrice, takeProfit, stopLoss, comment)
 
 

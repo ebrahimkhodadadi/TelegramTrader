@@ -5,7 +5,7 @@ import time
 from datetime import datetime, timedelta
 
 
-class MetaTrader:
+class MetaTraderBetween:
     def Login(path, server, user, password):
         try:
             logger.info(f"try to login to {server} with {user}")
@@ -65,19 +65,19 @@ class MetaTrader:
     def calculate_new_price(symbol, price, num_points, tp, actionType):
         """
         Calculate a new price by adding/subtracting a number of points to/from the given price.
-        
+
         Args:
         symbol (str): The financial instrument symbol (e.g., 'EURUSD').
         price (float): The current price of the symbol.
         num_points (int): The number of points (ticks) to add/subtract.
         actionType (buy or sell): Meta trader type
-        
+
         Returns:
         float: The new calculated price.
         """
         # validate
         if num_points is None or num_points == 0:
-            return float(tp)
+            return tp
         # Get symbol information
         symbol_info = mt5.symbol_info(symbol)
         # Get the tick size
@@ -87,8 +87,8 @@ class MetaTrader:
             return price + ((num_points * 10) * tick_size)
         elif actionType == mt5.ORDER_TYPE_SELL or actionType == mt5.ORDER_TYPE_SELL_LIMIT or actionType == mt5.ORDER_TYPE_SELL_STOP:
             return price - ((num_points * 10) * tick_size)
-        
-        return float(price)
+
+        return price
 
     @logger.catch
     def calculate_lot_size_with_prices(symbol, risk_percentage, open_price, stop_loss_price):
@@ -108,13 +108,13 @@ class MetaTrader:
         """
         if '%' not in risk_percentage:
             return float(risk_percentage)
-        
+
         risk_percentage = float(risk_percentage.replace("%", ""))
-        
+
         account_size = mt5.account_info().balance
         tick_value = mt5.symbol_info(symbol).trade_tick_value
         tick_size = mt5.symbol_info(symbol).trade_tick_size
-            
+
         # Calculate the number of ticks between the open price and stop loss price
         risk_ticks = abs(open_price - stop_loss_price) / tick_size
 
@@ -135,7 +135,7 @@ class MetaTrader:
         return lot_size
 
     @logger.catch
-    def OpenPosition(type, lot, symbol, sl, tp, price, expirePendinOrderInMinutes, comment):
+    def OpenPosition(type, lot, symbol, sl, tp, staticTp, price, secondPrice, expirePendinOrderInMinutes, comment):
         try:
             # Get filling mode
             # filling_mode = mt5.symbol_info(symbol).filling_mode - 1
@@ -148,25 +148,52 @@ class MetaTrader:
             point = mt5.symbol_info(symbol).point
             deviation = 20  # mt5.getSlippage(symbol)
 
-            type = MetaTrader.determine_order_type_and_price(
-                bid_price, price, type)
+            if secondPrice != None and secondPrice > 0:
+                if secondPrice > price:
+                    temp = price
+                    price = secondPrice
+                    secondPrice = temp
 
+                if price >= bid_price and bid_price >= secondPrice:
+                    type = type
+                else:
+                    type = MetaTraderBetween.determine_order_type_and_price(bid_price, price, type)
+            else:
+                type = MetaTraderBetween.determine_order_type_and_price(bid_price, price, type)
+            
             action = mt5.TRADE_ACTION_PENDING
             if type == mt5.ORDER_TYPE_BUY or type == mt5.ORDER_TYPE_SELL:
                 action = mt5.TRADE_ACTION_DEAL
-
+                
+            if action == mt5.TRADE_ACTION_PENDING:
+                if secondPrice is not None:
+                    price = (price + secondPrice) / 2
+                    
             openPrice = float(price)
             stopLoss = float(sl)
             takeProfit = float(tp)
+
+            # tp first price
+            tpStatic = MetaTraderBetween.calculate_new_price(symbol, openPrice, staticTp, tp, type)
+            tpStatic = MetaTraderBetween.validate(tpStatic, symbol)
+            
+            # lot
+            lot = MetaTraderBetween.calculate_lot_size_with_prices(symbol, lot, openPrice, sl)
+            
+            
+            if MetaTraderBetween.AnyPositionByData(symbol, float(openPrice), stopLoss, takeProfit) == True:
+                logger.info(f"position already exist: symbol={symbol}, openPrice={openPrice}, sl={stopLoss}, tp={takeProfit}")
+                return
+            
             # Open the trade
             request = {
                 "action": action,
                 "symbol": symbol,
-                "volume": lot,
+                "volume": float(lot),
                 "type": type,
-                "price": openPrice,
-                "sl": stopLoss,
-                "tp": takeProfit,
+                "price": float(openPrice),
+                "sl": float(stopLoss),
+                "tp": float(takeProfit),
                 "type_filling": mt5.ORDER_FILLING_IOC,
                 # comment.replace("https://t.me/", ""),
                 "comment": "TelegramTrader",
@@ -178,6 +205,8 @@ class MetaTrader:
             # expiration
             if type != mt5.ORDER_TYPE_BUY and type != mt5.ORDER_TYPE_SELL:
                 if expirePendinOrderInMinutes != None and expirePendinOrderInMinutes != 0:
+                    if symbol != 'XAUUSD':
+                        expirePendinOrderInMinutes += 240
                     symbol_info = mt5.symbol_info(symbol)
                     timestamp = symbol_info.time
                     # Calculate expiration time
@@ -263,14 +292,13 @@ class MetaTrader:
             self.password = account_dict.get('password')
             self.lot = account_dict.get('lot')
             self.path = account_dict.get('path')
-            self.HighRisk = account_dict.get('HighRisk')
             self.between = account_dict.get('between')
             self.expirePendinOrderInMinutes = account_dict.get(
                 'expirePendinOrderInMinutes')
 
     def Trade(actionType, symbol, openPrice, secondPrice, tp, sl, comment):
         cfg = Configure.GetSettings()
-        meta_trader_accounts = [MetaTrader.MetaTraderAccount(
+        meta_trader_accounts = [MetaTraderBetween.MetaTraderAccount(
             acc) for acc in cfg["MetaTrader"]]
 
         # action
@@ -280,48 +308,19 @@ class MetaTrader:
             actionType = mt5.ORDER_TYPE_SELL
 
         for mtAccount in meta_trader_accounts:
-            if mtAccount.between != None and mtAccount.between == True:
+            if mtAccount.between == None or mtAccount.between == False:
                 continue;
             
-            if MetaTrader.Login(mtAccount.path, mtAccount.server, mtAccount.username, mtAccount.password) == False:
+            if MetaTraderBetween.Login(mtAccount.path, mtAccount.server, mtAccount.username, mtAccount.password) == False:
                 continue
-            if MetaTrader.CheckSymbol(symbol) == False:
+            if MetaTraderBetween.CheckSymbol(symbol) == False:
                 continue
-        
-            openPriceAvg = openPrice
-            if secondPrice is not None and mtAccount.HighRisk == False:
-                openPriceAvg = (MetaTrader.validate(openPrice, symbol) + MetaTrader.validate(secondPrice, symbol)) / 2
 
-            # tp first price
-            tpStatic =  MetaTrader.calculate_new_price(symbol, openPriceAvg, mtAccount.TakeProfit, tp, actionType)
-            # lot
-            lot = MetaTrader.calculate_lot_size_with_prices(symbol, mtAccount.lot, openPrice, sl)
+            openPriceAvg = openPrice
 
             # validate
-            openPriceAvg = MetaTrader.validate(openPriceAvg, symbol)
-            tpStatic = MetaTrader.validate(tpStatic, symbol)
-            sl = MetaTrader.validate(sl, symbol)
+            openPriceAvg = MetaTraderBetween.validate(openPriceAvg, symbol)
+            sl = MetaTraderBetween.validate(sl, symbol)
 
-            if MetaTrader.AnyPositionByData(symbol, openPriceAvg, sl, tpStatic) == True:
-                logger.info(f"position already exist: symbol={
-                            symbol}, openPrice={openPriceAvg}, sl={sl}, tp={tpStatic}")
-            else:
-                MetaTrader.OpenPosition(actionType, lot, symbol.upper(
-                ), sl, tpStatic, openPriceAvg, mtAccount.expirePendinOrderInMinutes, comment)
-
-            if secondPrice is not None and mtAccount.HighRisk == True:
-                # tp first price
-                tpStatic =  MetaTrader.calculate_new_price(symbol, openPriceAvg, mtAccount.TakeProfit, tp, actionType)
-                # lot
-                lot = MetaTrader.calculate_lot_size_with_prices(symbol, mtAccount.lot, secondPrice, sl)
-                # validate
-                secondPrice = MetaTrader.validate(secondPrice, symbol)
-                tpStatic = MetaTrader.validate(tpStatic, symbol)
-                sl = MetaTrader.validate(sl, symbol)
-
-                if MetaTrader.AnyPositionByData(symbol, secondPrice, sl, tpStatic) == True:
-                    logger.info(f"position already exist: symbol={symbol}, secondPrice={secondPrice}, sl={sl}, tp={tpStatic}")
-                    continue
-
-                MetaTrader.OpenPosition(actionType, lot, symbol.upper(
-                ), sl, tpStatic, secondPrice, mtAccount.expirePendinOrderInMinutes, comment)
+            MetaTraderBetween.OpenPosition(actionType,  mtAccount.lot, symbol.upper(
+            ), sl, tp, mtAccount.TakeProfit, openPriceAvg, secondPrice, mtAccount.expirePendinOrderInMinutes, comment)

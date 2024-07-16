@@ -29,4 +29,4 @@ try:
 except KeyboardInterrupt:
     logger.info("Exiting...")
 except Exception as e:
-    logger.exception("Error while starting bot [app - runner.py]\n"+e)
+    logger.exception(f"Error while starting bot [app - runner.py]\n{e}")
