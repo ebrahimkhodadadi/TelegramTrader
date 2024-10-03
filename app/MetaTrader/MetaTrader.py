@@ -94,44 +94,49 @@ class MetaTrader:
     def calculate_lot_size_with_prices(symbol, risk_percentage, open_price, stop_loss_price):
         """
         Calculate the lot size per account size, risk percentage, open position price, and stop loss price.
-
+    
         Parameters:
         account_size (float): The total capital in the trading account.
         risk_percentage (float): The percentage of the account size to risk on a single trade.
         open_price (float): The open position price.
         stop_loss_price (float): The stop loss price.
-        tick_size (float): The smallest price increment of the instrument.
-        tick_value (float): The value of a single tick.
-
+    
         Returns:
         float: The calculated lot size rounded to two decimal places.
         """
         if '%' not in risk_percentage:
             return float(risk_percentage)
-        
+    
         risk_percentage = float(risk_percentage.replace("%", ""))
-        
+    
         account_size = mt5.account_info().balance
         tick_value = mt5.symbol_info(symbol).trade_tick_value
         tick_size = mt5.symbol_info(symbol).trade_tick_size
-            
+    
         # Calculate the number of ticks between the open price and stop loss price
         risk_ticks = abs(open_price - stop_loss_price) / tick_size
-
-        # Convert the number of ticks to pip value
-        risk_pips = risk_ticks  # Assuming risk_ticks are in pip units already
-
+    
         # Calculate the monetary risk
         risk_amount = account_size * (risk_percentage / 100)
-
-        # Calculate lot size
-        lot_size = risk_amount / (risk_pips * tick_value)
+    
+        # Calculate initial lot size
+        lot_size = risk_amount / (risk_ticks * tick_value)
         lot_size = round(lot_size, 2)
-
-        if lot_size == 0 or lot_size == 0.00 or lot_size == 0.0:
-            logger.warning(f"risk amount is {risk_amount} more than {
-                           risk_percentage}% the lot size cant be lower than 0.01 this is on your own risk")
-
+    
+        # Calculate the actual risk amount with the initial lot size
+        actual_risk_amount = lot_size * risk_ticks * tick_value
+    
+        # If actual risk amount is higher than the desired risk amount, reduce the lot size
+        while actual_risk_amount > risk_amount and lot_size > 0.01:
+            lot_size -= 0.01
+            lot_size = round(lot_size, 2)
+            actual_risk_amount = lot_size * risk_ticks * tick_value
+    
+        # Ensure the lot size does not drop below 0.01
+        if lot_size < 0.01:
+            lot_size = 0.01
+            logger.warning(f"Risk amount of {risk_amount} exceeds {risk_percentage}%. The lot size cannot be lower than 0.01, this is at your own risk.")
+    
         return lot_size
 
     @logger.catch

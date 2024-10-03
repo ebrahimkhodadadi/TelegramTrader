@@ -9,11 +9,15 @@ def GetSettings():
     load_dotenv()
 
     # Load settings
-    if (os.getenv("ENV") == "development"):
-        cfg = config_from_json(
-            "config\development.json", read_from_file=True)
+    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+
+    # Load settings
+    if os.getenv("ENV") == "development":
+        config_file = os.path.join(root_dir, "config", "development.json")
     else:
-        cfg = config_from_json(
-            "config\production.json", read_from_file=True)
+        config_file = os.path.join(root_dir, "config", "production.json")
+
+    # Load the config file
+    cfg = config_from_json(config_file, read_from_file=True)
 
     return cfg

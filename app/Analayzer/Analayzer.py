@@ -2,7 +2,7 @@ from enum import Enum
 from loguru import logger
 import json
 import re
-
+import os
 
 def parse_message(message):
     try:
@@ -37,8 +37,8 @@ def GetFirstPrice(message):
         openPrice = float(match[0]) if match else None
         return openPrice
     except Exception as e:
-        logger.error("Can't deserilize message '" +
-                     message + "' for first price: \n" + e)
+        # logger.error("Can't deserilize message '" +
+        #              message + "' for first price: \n" + e)
         return None
 
 
@@ -65,8 +65,8 @@ def GetSecondPrice(message):
 
         return second_number
     except Exception as e:
-        logger.error("Can't deserilize message '" +
-                     message + "' for second price: \n" + e)
+        # logger.error("Can't deserilize message '" +
+        #              message + "' for second price: \n" + e)
         return None
 
 
@@ -118,8 +118,8 @@ def GetTakeProfit(message):
             return None
         return tp_numbers[0]
     except Exception as e:
-        logger.error("Can't deserilize message '" +
-                     message + "' for tp: \n" + e)
+        # logger.error("Can't deserilize message '" +
+        #              message + "' for tp: \n" + e)
         return None
 
 
@@ -176,8 +176,8 @@ def GetStopLoss(message):
             if sl_numbers:
                 return sl_numbers[0]
     except Exception as e:
-        logger.error("Can't deserilize message '" +
-                     message + "' for sl: \n" + e)
+        # logger.error("Can't deserilize message '" +
+        #              message + "' for sl: \n" + e)
         return None
 
 
@@ -213,7 +213,9 @@ def read_symbol_list(json_file_path):
 
 
 def GetSymbol(sentence):
-    symbol_list = read_symbol_list('data\\Symbols.json')
+    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    path = os.path.join(root_dir, "data", "Symbols.json");
+    symbol_list = read_symbol_list(path)
     words = sentence.split()
     for word in words:
         word = word.replace("/", "").replace("-", "")

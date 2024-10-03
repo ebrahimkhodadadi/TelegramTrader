@@ -7,7 +7,8 @@ from telethon.errors import RPCError, AuthKeyError
 from telethon.errors.rpcerrorlist import FloodWaitError, NetworkMigrateError, ServerError
 from MessageHandler import *
 import Configure
-
+import sys
+import asyncio
 class Telegram:
     def __init__(self, api_id, api_hash):
         self.api_id = api_id
@@ -16,6 +17,8 @@ class Telegram:
             'TelegramSession', self.api_id, self.api_hash)
 
     async def HandleMessages(self):
+        sys.stdout.reconfigure(encoding='utf-8')
+
         logger.info('start listening...')
 
         try:
@@ -49,27 +52,39 @@ class Telegram:
             logger.warning("Telegram Client disconnected.")
 
     async def HandleEvent(self, messageType, event):
+        message_link = ""
+        username = None
         # get settings
-        username, message_id, message_link =  await Telegram.GetMessageDetail(event)
+        try:
+            username, message_id, message_link = await Telegram.GetMessageDetail(event)
+        except:
+            pass
         # validtor
-        cfg = Configure.GetSettings()
-        whiteList = cfg.Telegram.channels.whiteList
-        if whiteList is not None and whiteList:
-            if username not in whiteList:
-                return
-        blackList = cfg.Telegram.channels.blackList
-        if blackList is not None and blackList:
-            if username in blackList:
-                return
+        if username is not None:
+            cfg = Configure.GetSettings()
+            whiteList = cfg.Telegram.channels.whiteList
+            if whiteList is not None and whiteList:
+                if username not in whiteList:
+                    return
+            blackList = cfg.Telegram.channels.blackList
+            if blackList is not None and blackList:
+                if username in blackList:
+                    return
         
+        text = event.raw_text.encode('utf-8', errors='ignore').decode('utf-8')
         # send signal to a channel
-        # await self.SendMessage(event.raw_text)
+        try:
+            await self.SendMessage(text)
+        except:
+            pass
+        
         # open postion
-        Handle(messageType, event.raw_text, message_link)
+        Handle(messageType, text, message_link)
     
     async def GetMessageDetail(event):
         try:
             chat = await event.get_chat()
+
             if hasattr(chat, 'username') and chat.username:
                 username = chat.username
                 message_id = event.message.id
@@ -77,13 +92,23 @@ class Telegram:
                 # Construct the message link
                 message_link = f"https://t.me/{username}/{message_id}"
                 return username, message_id, message_link
+            elif hasattr(chat, 'title') and chat.title:
+                username = chat.title
+                message_id = event.message.id
+
+                # Construct the message link
+                message_link = f"{username}/{message_id}"
+                return username, message_id, message_link
         except:
             return None, None, None
     
     async def SendMessage(self, text):
         try:
-            actionType, symbol, firstPrice, secondPrice, takeProfit, stopLoss = parse_message(text)
-            if actionType is None or firstPrice is None or stopLoss is None or symbol is None or takeProfit is None:
+            try:
+                actionType, symbol, firstPrice, secondPrice, takeProfit, stopLoss = parse_message(text)
+                if actionType is None or firstPrice is None or stopLoss is None or symbol is None or takeProfit is None:
+                    return
+            except:
                 return
             
             if actionType.value == 1:  # buy
