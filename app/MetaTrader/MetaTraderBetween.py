@@ -324,7 +324,9 @@ class MetaTraderBetween:
 
             # validate
             openPriceAvg = MetaTraderBetween.validate(openPriceAvg, symbol)
+            secondPrice = MetaTraderBetween.validate(secondPrice, symbol)
             sl = MetaTraderBetween.validate(sl, symbol)
+            tp = MetaTraderBetween.validate(tp, symbol)
 
             MetaTraderBetween.OpenPosition(actionType,  mtAccount.lot, symbol.upper(
             ), sl, tp, mtAccount.TakeProfit, openPriceAvg, secondPrice, mtAccount.expirePendinOrderInMinutes, comment)

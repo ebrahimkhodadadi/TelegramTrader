@@ -293,7 +293,11 @@ class MetaTrader:
             if MetaTrader.CheckSymbol(symbol) == False:
                 continue
         
-            openPriceAvg = openPrice
+            openPrice = MetaTrader.validate(openPrice, symbol)
+            openPriceAvg = MetaTrader.validate(openPrice, symbol)
+            sl = MetaTrader.validate(sl, symbol)
+            secondPrice = MetaTrader.validate(secondPrice, symbol)
+            
             if secondPrice is not None and mtAccount.HighRisk == False:
                 openPriceAvg = (MetaTrader.validate(openPrice, symbol) + MetaTrader.validate(secondPrice, symbol)) / 2
 
@@ -305,7 +309,6 @@ class MetaTrader:
             # validate
             openPriceAvg = MetaTrader.validate(openPriceAvg, symbol)
             tpStatic = MetaTrader.validate(tpStatic, symbol)
-            sl = MetaTrader.validate(sl, symbol)
 
             if MetaTrader.AnyPositionByData(symbol, openPriceAvg, sl, tpStatic) == True:
                 logger.info(f"position already exist: symbol={
