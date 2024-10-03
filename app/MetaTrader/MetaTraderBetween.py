@@ -134,7 +134,7 @@ class MetaTraderBetween:
     
         # Ensure the lot size does not drop below 0.01
         if lot_size < 0.01:
-            lot_size = 0.01
+            # lot_size = 0.01
             logger.warning(f"Risk amount of {risk_amount} exceeds {risk_percentage}%. The lot size cannot be lower than 0.01, this is at your own risk.")
     
         return lot_size
