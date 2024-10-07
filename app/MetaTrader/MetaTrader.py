@@ -239,7 +239,7 @@ class MetaTrader:
             logger.info("result of open position: "+result.comment)
             return result
         except Exception as ex:
-            logger.error(f"Unexpected error in open trade position: {ex} \n request: {request}")
+            logger.error(f"Unexpected error in open trade position: {ex}")
 
     @logger.catch
     def AnyPositionByData(symbol, openPrice, sl, tp):
