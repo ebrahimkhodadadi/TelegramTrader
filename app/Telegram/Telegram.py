@@ -18,39 +18,47 @@ class Telegram:
 
     async def HandleMessages(self):
         sys.stdout.reconfigure(encoding='utf-8')
-
         logger.info('start listening...')
 
-        try:
-            await self.client.start()
-            logger.info("Client started. Press Ctrl+C to stop.")
+        while True:
+            try:
+                await self.client.start()
+                logger.info("Client started. Press Ctrl+C to stop.")
 
-            @self.client.on(events.NewMessage)
-            async def new_event_handler(event):
-                await self.HandleEvent(MessageType.New, event)
-            @self.client.on(events.MessageEdited)
-            async def edit_event_handler(event):
-                # await Telegram.HandleEvent(MessageType.Edited, event)
-                username, message_id, message_link =  await Telegram.GetMessageDetail(event)
-                # logger.warning(f"message Edited here is the link: {message_link}")
-                pass
-            @self.client.on(events.MessageDeleted)
-            async def delete_event_handler(event):
-                # await Telegram.HandleEvent(MessageType.Deleted, event)
-                # logger.warning(f"message Deleted here is the detail: {event._message_id} \n {event}")
-                pass
+                @self.client.on(events.NewMessage)
+                async def new_event_handler(event):
+                    await self.HandleEvent(MessageType.New, event)
 
-            await self.client.run_until_disconnected()
-        except (OSError, AuthKeyError, RPCError, FloodWaitError, NetworkMigrateError, ServerError) as e:
-            logging.error(f"Connection error: {e}")
-        except Exception as e:
-            logging.error(f"Unexpected error: {e}")
-        except KeyboardInterrupt:
-            logger.warning("Exiting...")
-        finally:
-            self.client.disconnect()
-            logger.warning("Telegram Client disconnected.")
+                @self.client.on(events.MessageEdited)
+                async def edit_event_handler(event):
+                    username, message_id, message_link = await Telegram.GetMessageDetail(event)
+                    # logger.warning(f"message Edited here is the link: {message_link}")
+                    pass
 
+                @self.client.on(events.MessageDeleted)
+                async def delete_event_handler(event):
+                    pass
+
+                await self.client.run_until_disconnected()
+
+            except (OSError, AuthKeyError, RPCError, FloodWaitError, NetworkMigrateError, ServerError) as e:
+                logging.error(f"Connection error: {e}")
+                await asyncio.sleep(5)  # Wait before retrying
+                logger.info("Retrying connection...")
+
+            except Exception as e:
+                logging.error(f"Unexpected error: {e}")
+                await asyncio.sleep(5)  # Retry even on unexpected errors
+
+            except KeyboardInterrupt:
+                logger.warning("Exiting...")
+                break  # Break the loop if manually interrupted
+
+            finally:
+                await self.client.disconnect()
+                logger.warning("Telegram Client disconnected.")
+                
+                
     async def HandleEvent(self, messageType, event):
         message_link = ""
         username = None
