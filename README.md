@@ -1,3 +1,6 @@
+## Demo
+![Screenshot](HowTo.gif)
+
 # Project Setup Guide
 
 Follow these steps to set up and run the project.
