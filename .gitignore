@@ -3,3 +3,4 @@
 config/
 .venv/
 *.session-journal
+venv/*
