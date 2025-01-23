@@ -81,11 +81,11 @@ class Telegram:
         
         text = event.raw_text.encode('utf-8', errors='ignore').decode('utf-8')
         # send signal to a channel
-        try:
-            # Bug: fix already exist position telegram
-            await self.SendMessage(text)
-        except:
-            pass
+        # try:
+        #     # Bug: fix already exist position telegram
+        #     await self.SendMessage(text)
+        # except:
+        #     pass
         
         # open postion
         Handle(messageType, text, message_link)

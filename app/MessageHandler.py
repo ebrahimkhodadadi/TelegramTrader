@@ -30,7 +30,6 @@ def Handle(messageType, text, comment):
         return
     
     # Open Position
-    MetaTraderBetween.Trade(actionType, symbol, firstPrice, secondPrice, takeProfit, stopLoss, comment)
     MetaTrader.Trade(actionType, symbol, firstPrice, secondPrice, takeProfit, stopLoss, comment)
 
 
