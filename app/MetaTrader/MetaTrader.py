@@ -1,3 +1,4 @@
+from app.database import Migrations
 from loguru import logger
 import MetaTrader5 as mt5
 import Configure
@@ -6,11 +7,12 @@ from datetime import datetime, timedelta
 
 
 class MetaTrader:
-    def __init__(self, path, server, user, password):
+    def __init__(self, path, server, user, password, signal_id):
         self.path = path
         self.server = server
         self.user = user
         self.password = password
+        self.signal_id = signal_id
         
     def Login(self):
         try:
@@ -243,6 +245,14 @@ class MetaTrader:
             # logger.info(f"result: {result}")
             logger.info(f"open position id: {result.order} for {comment}")
             logger.info("result of open position: "+result.comment)
+            
+            # save in database
+            position_data = {
+                "signal_id": self.signal_id,
+                "position_id": result.order
+            }
+            Migrations.position_repo.insert(position_data)
+            
             return result
         except Exception as ex:
             logger.error(f"Unexpected error in open trade position: {ex}")
@@ -278,7 +288,7 @@ class MetaTrader:
             self.expirePendinOrderInMinutes = account_dict.get(
                 'expirePendinOrderInMinutes')
 
-    def Trade(actionType, symbol, openPrice, secondPrice, tp, sl, comment):
+    def Trade(actionType, symbol, openPrice, secondPrice, tp, sl, comment, signal_id):
         cfg = Configure.GetSettings()
         meta_trader_accounts = [MetaTrader.MetaTraderAccount(acc) for acc in cfg["MetaTrader"]]
 
@@ -293,7 +303,8 @@ class MetaTrader:
                     path=mtAccount.path,
                     server=mtAccount.server,
                     user=mtAccount.username,
-                    password=mtAccount.password
+                    password=mtAccount.password,
+                    signal_id=signal_id
                 )
             
             if mt.Login() == False:

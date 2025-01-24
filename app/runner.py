@@ -1,3 +1,4 @@
+import database
 from loguru import logger
 import Configure
 import Helper
@@ -19,6 +20,9 @@ try:
     Configure.ConfigNotification(
         cfg.Notification.token, cfg.Notification.chatId)
 
+    # migrations
+    database.Migrations.DoMigrations()
+    
     # start telegram listener
     telegramSettings = cfg.Telegram
     telegram = Telegram(telegramSettings.api_id, telegramSettings.api_hash)
