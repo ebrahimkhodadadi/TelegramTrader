@@ -24,6 +24,7 @@
       "lot": "2%",
       "expirePendinOrderInMinutes": 30,
       "HighRisk": false,
+      "EnableTp": true,
       "path": "C:/Users/Trade4/Desktop/TelegramMetaTrader/terminal64.exe"
     }
   ]

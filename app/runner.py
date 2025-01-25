@@ -1,10 +1,10 @@
-import database
+import Database
 from loguru import logger
 import Configure
 import Helper
 from Telegram.Telegram import *
 import asyncio
-
+from MetaTrader import *
 
 try:
     logger.info("Starting...")
@@ -21,7 +21,11 @@ try:
         cfg.Notification.token, cfg.Notification.chatId)
 
     # migrations
-    database.Migrations.DoMigrations()
+    Database.Migrations.DoMigrations()
+    
+    # metatrader monitoring 
+    #Note: test
+    asyncio.run(MetaTrader.Monitor())
     
     # start telegram listener
     telegramSettings = cfg.Telegram

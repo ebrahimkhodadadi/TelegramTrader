@@ -16,10 +16,10 @@ def parse_message(message):
             return None, None, None, None, None
         firstPrice = GetFirstPrice(message)
         secondPrice = GetSecondPrice(message)
-        takeProfit = GetTakeProfit(message)
+        takeProfits = GetTakeProfits(message)
         stopLoss = GetStopLoss(message)
         symbol = GetSymbol(message)
-        return actionType, symbol, firstPrice, secondPrice, takeProfit, stopLoss
+        return actionType, symbol, firstPrice, secondPrice, takeProfits, stopLoss
     except Exception as e:
         logger.error("Error while deserilize message: \n" + e)
         return None, None, None, None, None, None
@@ -69,43 +69,41 @@ def GetSecondPrice(message):
         #              message + "' for second price: \n" + e)
         return None
 
-
-def GetTakeProfit(message):
+# Note: test
+def GetTakeProfits(message):
     try:
         tp_numbers = []
         sentences = re.split(r'\n+', message)
         for sentence in sentences:
             words = re.findall(r'\b\d+\b|\btp\b', sentence.lower())
             # Extract TP numbers
-            tp_match = re.search(
+            tp_match = re.findall(
                 r'tp\s*(?:\d*\s*:\s*)?(\d+\.\d+)', sentence, re.IGNORECASE)
             if not tp_match:
-                tp_match = re.search(
+                tp_match = re.findall(
                     r'tp\s*:\s*(\d+\.?\d*)', sentence, re.IGNORECASE)
-            # if not tp_match:
-            #     tp_match = re.search(r'tp1\s*[:\-]\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)
             if not tp_match:
-                tp_match = re.search(
+                tp_match = re.findall(
                     r'tp1\s*:\s*(\d+\.?\d*)', sentence, re.IGNORECASE)
             if not tp_match:
-                tp_match = re.search(
+                tp_match = re.findall(
                     r'tp1\s*\s*(\d+\.?\d*)', sentence, re.IGNORECASE)
             if not tp_match:
-                tp_match = re.search(
+                tp_match = re.findall(
                     r'tp\s*[-:]\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)
             if not tp_match:
-                tp_match = re.search(
+                tp_match = re.findall(
                     r'TP\s*1\s*[-:]\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)
             if not tp_match:
-                tp_match = re.search(
+                tp_match = re.findall(
                     r'checkpoint\s*1\s*:\s*(\d+\.?\d*|OPEN)', message, re.IGNORECASE)
             if not tp_match:
-                tp_match = re.search(
+                tp_match = re.findall(
                     r'Takeprofit\s*1\s*=\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)
             if not tp_match:
-                tp_match = re.search(r'تی پی\s*(\d+)', message)
+                tp_match = re.findall(r'تی پی\s*(\d+)', message)
             if tp_match:
-                tp_numbers.append(float(tp_match.group(1)))
+                tp_numbers.extend([float(tp) for tp in tp_match])
             if not tp_numbers or tp_numbers[0] == 1.0 or tp_numbers[0] == 1:
                 if 'tp' in words:
                     index = words.index('tp')
@@ -114,9 +112,14 @@ def GetTakeProfit(message):
                             tp_numbers.append(int(words[index + 1]))
                         except ValueError:
                             pass  # Ignore if the next word after "tp" is not a number
+            # Check for comma-separated TP values in Persian
+            persian_tp_match = re.findall(r'تی پی\s*([\d\s,،]+)', message)
+            if persian_tp_match:
+                for match in persian_tp_match:
+                    tp_numbers.extend([float(tp.strip()) for tp in re.split(r'[,\s،]+', match) if tp.strip().isdigit()])
         if len(tp_numbers) == 0 or tp_numbers == 1.0:
             return None
-        return tp_numbers[0]
+        return tp_numbers
     except Exception as e:
         # logger.error("Can't deserilize message '" +
         #              message + "' for tp: \n" + e)
