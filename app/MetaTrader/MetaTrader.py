@@ -1,11 +1,14 @@
-from app import Database
-from app.Database import Migrations
+import math
+import Configure
+import Database
+from Database import Migrations
 from loguru import logger
 import MetaTrader5 as mt5
-import Configure
 import time
 import asyncio
 from datetime import datetime, timedelta
+
+# https://www.mql5.com/en/docs/constants/errorswarnings/enum_trade_return_codes
 
 
 class MetaTrader:
@@ -14,19 +17,25 @@ class MetaTrader:
         self.server = server
         self.user = user
         self.password = password
+        self.magic = 2025
+        self.connected = False
 
-    def Login(self):
+    def Login(self) -> bool:
         try:
             logger.info(f"try to login to {self.server} with {self.user}")
             # establish connection to the MetaTrader 5 terminal
             if not mt5.initialize(path=self.path, login=self.user, server=self.server, password=self.password):
                 logger.error("MetaTrader Login failed, error code =",
                              mt5.last_error())
-                return False
-            return True
+                self.connected = False
+                return self.connected
+            logger.success(f"login was successful for {self.user}")
+            self.connected = True
+            return self.connected
         except Exception as e:
             logger.error(f"Unexpected error: {e}")
-            return False
+            self.connected = False
+            return self.connected
 
     def CheckSymbol(self, symbol):
         logger.info("Check symbol " + symbol)
@@ -47,48 +56,137 @@ class MetaTrader:
     def get_current_price(self, symbol: str):
         """Get the current price of the symbol"""
         tick = mt5.symbol_info_tick(symbol)
+        logger.info(f"{symbol} current price is: {tick.bid}")
         return tick.bid if tick else None
 
     def get_open_positions(self):
         """Get open positions from MetaTrader"""
         positions = mt5.positions_get()
-        return positions if positions else []
-    
+        return list(positions) if positions else []
+
     def get_pending_orders(self):
         """Get pending orders from MetaTrader"""
         orders = mt5.orders_get()
-        return orders if orders else []
+        return list(orders) if orders else []
 
-    def close_half_position(self, ticket, lots):
+    # https://www.mql5.com/en/docs/python_metatrader5/mt5positionsget_py
+    def get_position_by_ticket(self, ticket_id):
+        """
+        Retrieve a position by its ticket ID.
+
+        Parameters:
+        ticket_id (int): The ticket ID of the position.
+
+        Returns:
+        dict or None: A dictionary containing the position details if found, otherwise None.
+        """
+        # Get the position by ticket ID
+        position = mt5.positions_get(ticket=ticket_id)
+        if position is None or len(position) == 0:
+            logger.error(f"No position found with ticket ID: {ticket_id}")
+            return None
+        return list(position)[0]
+
+    def close_half_position(self, ticket):
         """Close half of the position volume"""
-        new_lot_size = lots / 2
+        position = self.get_position_by_ticket(ticket)
+        new_lot_size = math.floor((position.volume / 2) * 100) / 100
+        logger.warning(f"new lot size to close half of {
+                       ticket} is {new_lot_size}")
+
         if new_lot_size >= 0.01:
-            print(f"Closing half of position {
-                  ticket}, new lot: {new_lot_size}")
-            mt5.order_send({
+            request = {
                 "action": mt5.TRADE_ACTION_DEAL,
-                "position": ticket,
-                "volume": new_lot_size,
-                "type": mt5.ORDER_TYPE_SELL
-            })
+                "symbol": position.symbol,
+                "volume": float(new_lot_size),
+                "type": mt5.ORDER_TYPE_SELL if position.type == mt5.ORDER_TYPE_BUY else mt5.ORDER_TYPE_BUY,
+                "position": position.ticket,
+                "price": mt5.symbol_info_tick(position.symbol).bid if position.type == mt5.ORDER_TYPE_BUY else mt5.symbol_info_tick(position.symbol).ask,
+                "deviation": 10,
+                "magic": self.magic,
+                "comment": "Closing half position",
+                "type_time": mt5.ORDER_TIME_GTC,
+                "type_filling": mt5.ORDER_FILLING_IOC,
+            }
+            result = mt5.order_send(request)
+            logger.info(f"{result}")
+            if result.retcode != mt5.TRADE_RETCODE_DONE:
+                logger.error(f"Failed to close half position for {
+                             position.symbol}: {result.comment}")
+                return False
+            else:
+                logger.success(f"Successfully closed half position for {
+                               position.symbol}, ticket {ticket}")
         else:
             self.close_position(ticket)
 
     def update_stop_loss(self, ticket, new_stop_loss):
         """Updating stop loss"""
-        mt5.order_send({
+        position = self.get_position_by_ticket(ticket)
+
+        symbol_info = mt5.symbol_info(position.symbol)
+        if symbol_info:
+            digits = symbol_info.digits
+            new_stop_loss = round(new_stop_loss, digits)
+            logger.info(f"try changing {ticket} stop loss {
+                        position.sl} to {new_stop_loss}")
+
+        request = {
             "action": mt5.TRADE_ACTION_SLTP,
             "position": ticket,
-            "sl": new_stop_loss
-        })
+            "symbol": position.symbol,
+            "volume": position.volume,
+            "type": mt5.ORDER_TYPE_SELL if position.type == mt5.ORDER_TYPE_BUY else mt5.ORDER_TYPE_BUY,
+            "price_open": position.price_open,
+            "sl": float(new_stop_loss),
+            "tp": position.tp,
+            "magic": self.magic,
+            "deviation": 10,
+            "comment": "Updating stop loss",
+        }
+
+        # Send the modification request
+        result = mt5.order_send(request)
+        logger.info(f"result: {result}")
+        if result.retcode != mt5.TRADE_RETCODE_DONE:
+            logger.error(f"Failed to update stop loss for position {
+                         ticket}: {result.comment}")
+            mt5.shutdown()
+            return False
+        else:
+            logger.success(f"Successfully updated stop loss for position {
+                           ticket} to {new_stop_loss}")
+        return True
 
     def close_position(self, ticket):
+        position = self.get_position_by_ticket(ticket)
+
         """Close position"""
-        mt5.order_send({
+        request = {
             "action": mt5.TRADE_ACTION_DEAL,
+            "symbol": position.symbol,
+            "volume": position.volume,
+            "type": mt5.ORDER_TYPE_SELL if position.type == mt5.ORDER_TYPE_BUY else mt5.ORDER_TYPE_BUY,
             "position": ticket,
-            "type": mt5.ORDER_TYPE_SELL
-        })
+            "price": mt5.symbol_info_tick(position.symbol).bid if position.type == mt5.ORDER_TYPE_BUY else mt5.symbol_info_tick(position.symbol).ask,
+            "deviation": 10,
+            "magic": self.magic,
+            "comment": "Closing position",
+            "type_time": mt5.ORDER_TIME_GTC,
+            "type_filling": mt5.ORDER_FILLING_IOC,
+        }
+
+        # Send the close order request
+        result = mt5.order_send(request)
+
+        if result.retcode != mt5.TRADE_RETCODE_DONE:
+            logger.error(f"Failed to close position {
+                         ticket}: {result.comment}")
+            return False
+        else:
+            logger.success(f"Successfully closed position {ticket}")
+
+        return True
 
     def determine_order_type_and_price(self, current_price, open_order_price, order_type_signal):
         if order_type_signal == mt5.ORDER_TYPE_BUY:
@@ -210,6 +308,7 @@ class MetaTrader:
             if type == mt5.ORDER_TYPE_BUY or type == mt5.ORDER_TYPE_SELL:
                 action = mt5.TRADE_ACTION_DEAL
 
+            lot = float(lot)
             openPrice = float(price)
             stopLoss = float(sl)
             takeProfit = float(tp)
@@ -221,16 +320,14 @@ class MetaTrader:
                 "type": type,
                 "price": openPrice,
                 "sl": stopLoss,
+                "tp": takeProfit,
                 "type_filling": mt5.ORDER_FILLING_IOC,
                 # comment.replace("https://t.me/", ""),
                 "comment": "TelegramTrader",
                 "deviation": deviation,
-                "magic": 2024,
+                "magic": self.magic,
                 "type_time": mt5.ORDER_TIME_GTC,
             }
-
-            if tp != None and tp != 0:
-                request["tp"] = takeProfit
 
             # expiration
             if type != mt5.ORDER_TYPE_BUY and type != mt5.ORDER_TYPE_SELL:
@@ -291,12 +388,13 @@ class MetaTrader:
             logger.info("result of open position: "+result.comment)
 
             # save in database
-            position_data = {
-                "signal_id": signal_id,
-                "user_id": self.user,
-                "position_id": result.order
-            }
-            Migrations.position_repo.insert(position_data)
+            if signal_id != None:
+                position_data = {
+                    "signal_id": signal_id,
+                    "user_id": self.user,
+                    "position_id": result.order
+                }
+                Migrations.position_repo.insert(position_data)
 
             return result
         except Exception as ex:
@@ -329,7 +427,6 @@ class MetaTrader:
             self.lot = account_dict.get('lot')
             self.path = account_dict.get('path')
             self.HighRisk = account_dict.get('HighRisk')
-            self.EnableTp = account_dict.get('EnableTp')
             self.expirePendinOrderInMinutes = account_dict.get(
                 'expirePendinOrderInMinutes')
 
@@ -364,9 +461,6 @@ class MetaTrader:
             openPriceAvg = mt.validate(openPrice, symbol)
             sl = mt.validate(sl, symbol)
             secondPrice = mt.validate(secondPrice, symbol)
-            # Note: test
-            if mtAccount.EnableTp is True:
-                tp = None
 
             if secondPrice is not None and mtAccount.HighRisk == False:
                 openPriceAvg = (mt.validate(openPrice, symbol) +
@@ -409,7 +503,7 @@ class MetaTrader:
 
                 mt.OpenPosition(actionType, lot, symbol.upper(
                 ), sl, tpStatic, secondPrice, mtAccount.expirePendinOrderInMinutes, comment, signal_id)
-    # Note: test
+
     def CloseLastSignalPositions():
         cfg = Configure.GetSettings()
         meta_trader_accounts = [MetaTrader.MetaTraderAccount(
@@ -431,55 +525,69 @@ class MetaTrader:
 
             if mt.Login() == False:
                 continue
-            
+
             positions = Database.Migrations.get_last_signal_positions()
             for position in positions:
-                mt.ClosePosition(position)
+                mt.ClosePosition(position.ticket)
 
 # ==============================
 # MONITORING
 # ==============================
-    # Note: test
-    def on_tick(self, symbol):
-        last_tick = None  # Store the last tick to detect changes
-        while True:
-            tick = mt5.symbol_info_tick(symbol)
-            if tick is None:
-                logger.error("Failed to get tick data")
-                continue
-
-            # Check if tick is updated
-            if last_tick is None or last_tick.time != tick.time:
-                last_tick = tick  # Update last tick
-
-                self.trailing()
-                self.manage_positions()
-
-            # time.sleep(1)  # Adjust the interval as needed
-
-    # Note: test
-    async def Monitor(symbol="XAUUSD"):
+    async def monitor_all_accounts():
+        """Monitor all accounts concurrently"""
         cfg = Configure.GetSettings()
-        meta_trader_accounts = [MetaTrader.MetaTraderAccount(
-            acc) for acc in cfg["MetaTrader"]]
+        accounts = [MetaTrader.MetaTraderAccount(acc) for acc in cfg["MetaTrader"]]
 
+        # Create tasks for all accounts
         tasks = []
-        for mtAccount in meta_trader_accounts:
+        for account in accounts:
             mt = MetaTrader(
-                path=mtAccount.path,
-                server=mtAccount.server,
-                user=mtAccount.username,
-                password=mtAccount.password
+                path=account.path,
+                server=account.server,
+                user=account.username,
+                password=account.password
             )
-
-            if mt.Login() == False:
-                continue
-            if mt.CheckSymbol(symbol) == False:
-                continue
-
-            tasks.append(mt.on_tick(symbol))
+            tasks.append(mt.monitor_account())
 
         await asyncio.gather(*tasks)
+
+    async def monitor_account(self):
+        """Main async monitoring loop for a single account"""
+        while True:  # Keep trying to reconnect
+            try:
+                # Initial login/reconnect
+                if not self.connected:
+                    if not self.Login():
+                        logger.error(f"Failed to login to {
+                                     self.server}, retrying in 5 seconds...")
+                        await asyncio.sleep(5)
+                        continue
+
+                    logger.success(f"Connected to {
+                                   self.server}, starting monitoring...")
+
+                # Main monitoring loop
+                while True:
+                    # Check connection status periodically
+                    if not mt5.terminal_info().connected:
+                        logger.warning(f"Connection lost to {
+                                       self.server}, reconnecting...")
+                        self.connected = False
+                        break  # Break inner loop to reconnect
+
+                    # Get and process positions
+                    positions = self.get_open_positions()
+                    if positions:
+                        self.trailing()
+                        self.manage_positions()
+
+                    # Async sleep to maintain event loop
+                    await asyncio.sleep(1)
+
+            except Exception as e:
+                logger.error(f"Monitoring error on {self.server}: {e}")
+                self.connected = False
+                await asyncio.sleep(5)
 
     # Note: test
     def trailing(self):
@@ -516,7 +624,6 @@ class MetaTrader:
                         self.update_stop_loss(
                             ticket, tp_levels[max(i - 1, 0)] if i > 0 else entry_price)
 
-    # Note: test
     def manage_positions(self):
         open_positions = self.GetOpenPositions()
 
@@ -529,7 +636,7 @@ class MetaTrader:
 
             tp_levels = Database.Migrations.get_tp_levels(position_id)
             tp_levels = sorted(map(float, tp_levels.split(',')))
-            
+
             current_price = self.GetCurrentPrice(symbol)
 
             if (position_type == 0 and current_price >= tp_levels[0]) or (position_type == 1 and current_price <= tp_levels[0]):

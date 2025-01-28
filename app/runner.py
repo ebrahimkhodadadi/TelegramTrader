@@ -1,40 +1,46 @@
+import asyncio
 import Database
 from loguru import logger
 import Configure
 import Helper
 from Telegram.Telegram import *
-import asyncio
 from MetaTrader import *
 
-try:
-    logger.info("Starting...")
+async def main():
+    try:
+        logger.info("Starting...")
 
-    # get settings
-    cfg = Configure.GetSettings()
-    # check if can access Telegram
-    if Helper.can_access_telegram(cfg.Notification.token) == False:
-        raise Exception("Can't Access Telegram Enable your VPN.")
-    # config logger
-    Configure.ConfigLogger()
-    # Notification
-    Configure.ConfigNotification(
-        cfg.Notification.token, cfg.Notification.chatId)
+        # Get settings
+        cfg = Configure.GetSettings()
 
-    # migrations
-    Database.Migrations.DoMigrations()
-    
-    # metatrader monitoring 
-    #Note: test
-    asyncio.run(MetaTrader.Monitor())
-    
-    # start telegram listener
-    telegramSettings = cfg.Telegram
-    telegram = Telegram(telegramSettings.api_id, telegramSettings.api_hash)
+        # Check if Telegram can be accessed
+        if not Helper.can_access_telegram(cfg.Notification.token):
+            raise Exception("Can't Access Telegram. Enable your VPN.")
 
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(telegram.HandleMessages())
-except KeyboardInterrupt:
-    logger.info("Exiting...")
-except Exception as e:
-    logger.exception(f"Error while starting bot [app - runner.py]\n{e}")
+        # Configure logger
+        Configure.ConfigLogger()
+
+        # Configure notification
+        Configure.ConfigNotification(cfg.Notification.token, cfg.Notification.chatId)
+
+        # Perform database migrations
+        Database.Migrations.DoMigrations()
+
+        # Start MetaTrader monitoring
+        meta_trader_task = asyncio.create_task(MetaTrader.monitor_all_accounts())
+
+        # Start Telegram listener
+        telegram_settings = cfg.Telegram
+        telegram = Telegram(telegram_settings.api_id, telegram_settings.api_hash)
+        telegram_task = asyncio.create_task(telegram.HandleMessages())
+
+        # Wait for both tasks to complete (they won't unless the program is stopped)
+        await asyncio.gather(meta_trader_task, telegram_task)
+
+    except KeyboardInterrupt:
+        logger.info("Exiting...")
+    except Exception as e:
+        logger.exception(f"Error while starting bot [app - runner.py]\n{e}")
+
+if __name__ == "__main__":
+    asyncio.run(main())

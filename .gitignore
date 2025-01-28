@@ -3,3 +3,6 @@
 config/
 .venv/
 *.session-journal
+*.db
+__pycache__/*
+__pycache__

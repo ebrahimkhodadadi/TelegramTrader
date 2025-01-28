@@ -1,7 +1,7 @@
-from app.Database.Repository import SQLiteRepository
+from Database.Repository import *
 
 
-db_path = "trade.db"
+db_path = "telegramtrader.db"
 
 ## tables
 #signal

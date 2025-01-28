@@ -69,7 +69,6 @@ def GetSecondPrice(message):
         #              message + "' for second price: \n" + e)
         return None
 
-# Note: test
 def GetTakeProfits(message):
     try:
         tp_numbers = []

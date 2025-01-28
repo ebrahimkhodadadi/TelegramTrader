@@ -1,5 +1,5 @@
 from datetime import datetime
-from app.Database import Migrations
+from Database import Migrations
 from loguru import logger
 from enum import Enum
 from Analayzer import *
@@ -35,7 +35,6 @@ def HandleOpenPosition(messageType, text, comment, username, message_id):
         #     f"Can't open position because symbol is empty ({comment})")
         return
     
-    # Note: test
     # save in database
     signal_data = {
         "telegram_channel_title": username,
@@ -49,9 +48,14 @@ def HandleOpenPosition(messageType, text, comment, username, message_id):
     }
     signal_id = Migrations.signal_repo.insert(signal_data)
     
-    # Note: test
     # Open Position
-    MetaTrader.Trade(actionType, symbol, firstPrice, secondPrice, takeProfits[0] if takeProfits else None, stopLoss, comment, signal_id)
+    tp_levels = sorted(map(float, takeProfits.split(',')))
+    if actionType.value == 1:  # buy
+        tp = max(tp_levels)
+    else:
+        tp = min(tp_levels)
+        
+    MetaTrader.Trade(actionType, symbol, firstPrice, secondPrice, tp, stopLoss, comment, signal_id)
 
 def HandleRiskFree(text):
     if "ریسک فری" not in text or "risk free" not in text:
