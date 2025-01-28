@@ -118,7 +118,8 @@ def GetTakeProfits(message):
                     tp_numbers.extend([float(tp.strip()) for tp in re.split(r'[,\s،]+', match) if tp.strip().isdigit()])
         if len(tp_numbers) == 0 or tp_numbers == 1.0:
             return None
-        return tp_numbers
+        tp_numbers = set(tp_numbers)
+        return {tp for tp in tp_numbers if tp != 1.0}
     except Exception as e:
         # logger.error("Can't deserilize message '" +
         #              message + "' for tp: \n" + e)

@@ -80,7 +80,7 @@ class TestMetaTrader(unittest.TestCase):
         #     self.skipTest("No open positions found. Skipping test.")
 
         # Use the first position's ticket ID
-        position = self.mt.get_position_by_ticket(ticketid)
+        position = self.mt.get_open_positions(ticketid)
         logger.info(f"Found position {position}")
 
         # Validate the returned position

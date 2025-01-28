@@ -7,16 +7,19 @@ import Configure
 from MetaTrader import *
 import asyncio
 
+
 def Handle(messageType, text, comment, username, message_id):
     HandleOpenPosition(messageType, text, comment, username, message_id)
-    HandleRiskFree(text)
-    
-def HandleOpenPosition(messageType, text, comment, username, message_id):
+    HandleRiskFree(username, text)
+
+
+def HandleOpenPosition(messageType, text, comment, message_username, message_id):
     try:
-        actionType, symbol, firstPrice, secondPrice, takeProfits, stopLoss = parse_message(text)
+        actionType, symbol, firstPrice, secondPrice, takeProfits, stopLoss = parse_message(
+            text)
     except:
         return
-    
+
     if actionType is None:
         return
 
@@ -34,33 +37,14 @@ def HandleOpenPosition(messageType, text, comment, username, message_id):
         # logger.error(
         #     f"Can't open position because symbol is empty ({comment})")
         return
-    
-    # save in database
-    signal_data = {
-        "telegram_channel_title": username,
-        "telegram_message_id": message_id,
-        "open_price": firstPrice,
-        "second_price": secondPrice,
-        "stop_loss": stopLoss,
-        "tp_list": takeProfits,
-        "symbol": symbol,
-        "current_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    }
-    signal_id = Migrations.signal_repo.insert(signal_data)
-    
-    # Open Position
-    tp_levels = sorted(map(float, takeProfits.split(',')))
-    if actionType.value == 1:  # buy
-        tp = max(tp_levels)
-    else:
-        tp = min(tp_levels)
-        
-    MetaTrader.Trade(actionType, symbol, firstPrice, secondPrice, tp, stopLoss, comment, signal_id)
 
-def HandleRiskFree(text):
+    MetaTrader.Trade(message_username, message_id,actionType, symbol, firstPrice, secondPrice, takeProfits, stopLoss, comment)
+
+
+def HandleRiskFree(message_username, text):
     if "ریسک فری" not in text or "risk free" not in text:
         return
-    MetaTrader.CloseLastSignalPositions()
+    MetaTrader.CloseLastSignalPositions(message_username)
 
 
 class MessageType(Enum):
