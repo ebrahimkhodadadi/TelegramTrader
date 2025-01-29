@@ -58,6 +58,8 @@ def GetSecondPrice(message):
             match = re.search(r'\b\d+\b\s*و\s*(\d+)\s*فروش', message)
         if not match:
             match = re.search(r'\b\d+\b\s*و\s*(\d+)\s*خرید', message)
+        if not match:
+            match = re.search(r'\b\d+\.?\d*/(\d+\.?\d*)', message)
         if match:
             second_number = float(match.group(1) or match.group(2))
         else:

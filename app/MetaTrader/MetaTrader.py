@@ -64,7 +64,7 @@ class MetaTrader:
         if ticket_id != None:
             positions = mt5.positions_get(ticket=ticket_id)
             if(len(positions) == 0):
-                logger.error(f"Can't find position {ticket_id}")
+                # logger.error(f"Can't find position {ticket_id}")
                 return None
             return positions[0]
         else:
@@ -684,8 +684,20 @@ class MetaTrader:
 
     def manage_positions(self):
         pending_orders = self.get_pending_orders()
-
+        
         for order in pending_orders:
+            # at first check if one of the poistions executed
+            positions = Database.Migrations.get_signal_positions_by_positionId(order.ticket)
+            if(len(positions) == 0):
+                continue
+            position = self.get_open_positions(positions[0]['position_id'])
+            if(position is None and len(positions) == 2):
+                position = self.get_open_positions(positions[1]['position_id'])
+            else:
+                continue
+            if(position is None):
+                continue
+                
             position_id = order.ticket
             position_type = order.type  # Buy = 0, Sell = 1
             symbol = order.symbol
