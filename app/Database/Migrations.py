@@ -67,11 +67,11 @@ def get_last_signal_positions_by_username(message_username):
         FROM positions p
         INNER JOIN signals s ON p.signal_id = s.id
         WHERE s.telegram_channel_title = ?
-        ORDER BY p.signal_id DESC
+        ORDER BY p.signal_id DESC, p.id DESC
         LIMIT 2
     """
-    positions = position_repo.execute_query(query, (message_username))
-    return [x['position_id'] for x in positions]
+    positions = position_repo.execute_query(query, (message_username,))  # Add a comma to make it a tuple
+    return [x[0] for x in positions]
 
 def get_last_record(open_price, second_price, stop_loss, symbol):
         query = """

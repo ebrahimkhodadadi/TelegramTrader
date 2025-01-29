@@ -42,9 +42,8 @@ def HandleOpenPosition(messageType, text, comment, message_username, message_id)
 
 
 def HandleRiskFree(message_username, text):
-    if "ریسک فری" not in text or "risk free" not in text:
-        return
-    MetaTrader.CloseLastSignalPositions(message_username)
+    if 'ریسک فری' in text or 'risk free' in text:
+        MetaTrader.CloseLastSignalPositions(message_username)
 
 
 class MessageType(Enum):

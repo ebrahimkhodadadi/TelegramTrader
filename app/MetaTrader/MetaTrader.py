@@ -124,7 +124,9 @@ class MetaTrader:
     def update_stop_loss(self, ticket, new_stop_loss):
         """Updating stop loss"""
         position = self.get_open_positions(ticket)
-
+        if(position.sl == new_stop_loss):
+            return False
+        
         symbol_info = mt5.symbol_info(position.symbol)
         if symbol_info:
             digits = symbol_info.digits
@@ -550,12 +552,6 @@ class MetaTrader:
         meta_trader_accounts = [MetaTrader.MetaTraderAccount(
             acc) for acc in cfg["MetaTrader"]]
 
-        # action
-        if actionType.value == 1:  # buy
-            actionType = mt5.ORDER_TYPE_BUY
-        elif actionType.value == 2:  # sell
-            actionType = mt5.ORDER_TYPE_SELL
-
         for mtAccount in meta_trader_accounts:
             mt = MetaTrader(
                 path=mtAccount.path,
@@ -569,11 +565,9 @@ class MetaTrader:
 
             positions = Database.Migrations.get_last_signal_positions_by_username(
                 message_username)
-            penind_orders = mt.get_pending_orders()
-            for order in penind_orders:
-                position = positions == order.ticket 
-                if position != None:
-                    mt.close_position(position)
+            pending_orders = mt.get_pending_orders()
+            for order in (o for o in pending_orders if o.ticket in positions):
+                mt.close_position(order.ticket)
 
 # ==============================
 # MONITORING
@@ -638,6 +632,8 @@ class MetaTrader:
 
         for position in positions:
             signal = Database.Migrations.get_signal_by_positionId(position.ticket)
+            if signal is None:
+                continue
             
             entry_price = signal["open_price"] # entry_price = position.price_open
             ticket = position.ticket
@@ -653,26 +649,33 @@ class MetaTrader:
             tp_levels = Database.Migrations.get_tp_levels(ticket)
             if not tp_levels:
                 continue
+            tp_levels = sorted(map(float, tp_levels))
 
             # بررسی رسیدن به سطح سود
             for i, tp in enumerate(tp_levels):
                 if trade_type == 0:  # Buy
                     # اگر قیمت به سطح TP رسید و حجم نصف نشده است
                     if current_price >= tp and stop_loss < tp:
+                        if (lots <= 0.01):
+                            self.close_position(ticket)
+                            
                         # انتقال Stop Loss به سطح قبلی یا نقطه ورود
                         new_stop_loss = tp_levels[i - 1] if i > 0 else entry_price
                         if(self.update_stop_loss(ticket, new_stop_loss) == False):
-                            break
+                            continue
                         
                         # نصف کردن حجم معامله
                         self.close_half_position(ticket)
                 elif trade_type == 1:  # Sell
                     # اگر قیمت به سطح TP رسید و حجم نصف نشده است
                     if current_price <= tp and stop_loss > tp:
+                        if (lots <= 0.01):
+                            self.close_position(ticket)
+                            
                         # انتقال Stop Loss به سطح قبلی یا نقطه ورود
                         new_stop_loss = tp_levels[i - 1] if i > 0 else entry_price
                         if(self.update_stop_loss(ticket, new_stop_loss) == False):
-                            break
+                            continue
                         
                         # نصف کردن حجم معامله
                         self.close_half_position(ticket)
