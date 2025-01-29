@@ -565,8 +565,8 @@ class MetaTrader:
 
             positions = Database.Migrations.get_last_signal_positions_by_username(
                 message_username)
-            pending_orders = mt.get_pending_orders()
-            for order in (o for o in pending_orders if o.ticket in positions):
+            orders = mt.get_open_positions()
+            for order in (o for o in orders if o.ticket in positions):
                 mt.close_position(order.ticket)
 
 # ==============================
