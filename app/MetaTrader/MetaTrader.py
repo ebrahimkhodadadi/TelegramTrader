@@ -1,4 +1,5 @@
 import math
+import os
 import Configure
 import Database
 from Database import Migrations
@@ -63,20 +64,20 @@ class MetaTrader:
         """Get open positions from MetaTrader"""
         if ticket_id != None:
             positions = mt5.positions_get(ticket=ticket_id)
-            if(len(positions) == 0):
+            if (len(positions) == 0):
                 # logger.error(f"Can't find position {ticket_id}")
                 return None
             return positions[0]
         else:
             positions = mt5.positions_get()
-        
+
         return list(positions) if positions else []
 
     def get_pending_orders(self, ticket_id=None):
         """Get pending orders from MetaTrader"""
         if ticket_id != None:
             orders = mt5.orders_get(ticket=ticket_id)
-            if(len(orders) == 0):
+            if (len(orders) == 0):
                 logger.error(f"Can't find order {ticket_id}")
                 return None
             return orders[0]
@@ -88,9 +89,9 @@ class MetaTrader:
     def close_half_position(self, ticket):
         """Close half of the position volume"""
         position = self.get_open_positions(ticket)
-        if(position is None):
+        if (position is None):
             return
-        
+
         new_lot_size = math.floor((position.volume / 2) * 100) / 100
         logger.warning(f"new lot size to close half of {
                        ticket} is {new_lot_size}")
@@ -124,9 +125,9 @@ class MetaTrader:
     def update_stop_loss(self, ticket, new_stop_loss):
         """Updating stop loss"""
         position = self.get_open_positions(ticket)
-        if(position.sl == new_stop_loss):
+        if (position.sl == new_stop_loss):
             return False
-        
+
         symbol_info = mt5.symbol_info(position.symbol)
         if symbol_info:
             digits = symbol_info.digits
@@ -172,14 +173,17 @@ class MetaTrader:
 
         # If no position or pending order exists, log and exit
         if position is None:
-            logger.error(f"Can't find position or order with ticket {ticket} to close.")
+            logger.error(f"Can't find position or order with ticket {
+                         ticket} to close.")
             return False
 
         # Determine symbol, volume, and price based on the position type
         symbol = position.symbol
-        volume = position.volume if hasattr(position, "volume") else position.volume_current
+        volume = position.volume if hasattr(
+            position, "volume") else position.volume_current
         price = (
-            mt5.symbol_info_tick(symbol).bid if position.type == mt5.ORDER_TYPE_BUY else mt5.symbol_info_tick(symbol).ask
+            mt5.symbol_info_tick(
+                symbol).bid if position.type == mt5.ORDER_TYPE_BUY else mt5.symbol_info_tick(symbol).ask
         )
 
         # Build the close request
@@ -203,7 +207,8 @@ class MetaTrader:
         result = mt5.order_send(request)
 
         if result.retcode != mt5.TRADE_RETCODE_DONE:
-            logger.error(f"Failed to close position {ticket}: {result.comment}")
+            logger.error(f"Failed to close position {
+                         ticket}: {result.comment}")
             return False
 
         logger.success(f"Successfully closed position {ticket}.")
@@ -441,15 +446,21 @@ class MetaTrader:
 
     class MetaTraderAccount:
         def __init__(self, account_dict):
+            self.path = account_dict.get('path')
+            if not self.path:  # Check if None or empty
+                current_path = os.getcwd()
+                self.path = os.path.join(current_path, "terminal64.exe")
+            # Check if the file exists
+            if not os.path.exists(self.path):
+                raise FileNotFoundError(f"Error: The file does not exist at path: {self.path}")
+    
             self.TakeProfit = account_dict.get('TakeProfit')
             self.server = account_dict.get('server')
             self.username = account_dict.get('username')
             self.password = account_dict.get('password')
             self.lot = account_dict.get('lot')
-            self.path = account_dict.get('path')
             self.HighRisk = account_dict.get('HighRisk')
-            self.expirePendinOrderInMinutes = account_dict.get(
-                'expirePendinOrderInMinutes')
+            self.expirePendinOrderInMinutes = account_dict.get('expirePendinOrderInMinutes')
 
 # ==============================
 # POSITION
@@ -513,6 +524,7 @@ class MetaTrader:
                 signal_id = Migrations.signal_repo.insert(signal_data)
             else:
                 signal_id = last_signal["id"]
+                # return
 
             # Open Position
             tp_levels = sorted(validated_tp_levels)
@@ -631,11 +643,13 @@ class MetaTrader:
         positions = self.get_open_positions()
 
         for position in positions:
-            signal = Database.Migrations.get_signal_by_positionId(position.ticket)
+            signal = Database.Migrations.get_signal_by_positionId(
+                position.ticket)
             if signal is None:
                 continue
-            
-            entry_price = signal["open_price"] # entry_price = position.price_open
+
+            # entry_price = position.price_open
+            entry_price = signal["open_price"]
             ticket = position.ticket
             lots = position.volume
             stop_loss = position.sl
@@ -649,63 +663,69 @@ class MetaTrader:
             tp_levels = Database.Migrations.get_tp_levels(ticket)
             if not tp_levels:
                 continue
-            tp_levels = sorted(map(float, tp_levels))
+            tp_levels_buy = sorted(map(float, tp_levels))
+            tp_levels_sell = sorted(map(float, tp_levels), reverse=True)
 
             # بررسی رسیدن به سطح سود
-            for i, tp in enumerate(tp_levels):
-                if trade_type == 0:  # Buy
+            if trade_type == 0:  # Buy
+                for i, tp in enumerate(tp_levels_buy):
                     # اگر قیمت به سطح TP رسید و حجم نصف نشده است
                     if current_price >= tp and stop_loss < tp:
                         if (lots <= 0.01):
                             self.close_position(ticket)
-                            
+
                         # انتقال Stop Loss به سطح قبلی یا نقطه ورود
-                        new_stop_loss = tp_levels[i - 1] if i > 0 else entry_price
-                        if(self.update_stop_loss(ticket, new_stop_loss) == False):
+                        new_stop_loss = tp_levels_buy[i -
+                                                      1] if i > 0 else entry_price
+                        if (self.update_stop_loss(ticket, new_stop_loss) == False):
                             continue
-                        
+
                         # نصف کردن حجم معامله
                         self.close_half_position(ticket)
-                elif trade_type == 1:  # Sell
+            elif trade_type == 1:  # Sell
+                for i, tp in enumerate(tp_levels_sell):
                     # اگر قیمت به سطح TP رسید و حجم نصف نشده است
                     if current_price <= tp and stop_loss > tp:
                         if (lots <= 0.01):
                             self.close_position(ticket)
-                            
+
                         # انتقال Stop Loss به سطح قبلی یا نقطه ورود
-                        new_stop_loss = tp_levels[i - 1] if i > 0 else entry_price
-                        if(self.update_stop_loss(ticket, new_stop_loss) == False):
+                        new_stop_loss = tp_levels_sell[i -
+                                                       1] if i > 0 else entry_price
+                        # new_stop_loss = tp_levels[i + 1] if i < len(tp_levels) - 1 else entry_price
+                        if (self.update_stop_loss(ticket, new_stop_loss) == False):
                             continue
-                        
+
                         # نصف کردن حجم معامله
                         self.close_half_position(ticket)
 
-
-
     def manage_positions(self):
         pending_orders = self.get_pending_orders()
-        
+
         for order in pending_orders:
             # at first check if one of the poistions executed
-            positions = Database.Migrations.get_signal_positions_by_positionId(order.ticket)
-            if(len(positions) == 0):
+            positions = Database.Migrations.get_signal_positions_by_positionId(
+                order.ticket)
+            if (len(positions) == 0):
                 continue
             position = self.get_open_positions(positions[0]['position_id'])
-            if(position is None and len(positions) == 2):
+            if (position is None and len(positions) == 2):
                 position = self.get_open_positions(positions[1]['position_id'])
             else:
                 continue
-            if(position is None):
+            if (position is None):
                 continue
-                
+
             position_id = order.ticket
             position_type = order.type  # Buy = 0, Sell = 1
             symbol = order.symbol
 
             tp_levels = Database.Migrations.get_tp_levels(position_id)
-            tp_levels = sorted(map(float, tp_levels))
+            
+            tp_levels_buy = sorted(map(float, tp_levels))
+            tp_levels_sell = sorted(map(float, tp_levels), reverse=True)
 
             current_price = self.get_current_price(symbol)
 
-            if ((position_type == mt5.ORDER_TYPE_BUY_STOP or position_type == mt5.ORDER_TYPE_BUY_LIMIT) and current_price >= tp_levels[0]) or ((position_type == mt5.ORDER_TYPE_SELL_LIMIT or position_type == mt5.ORDER_TYPE_SELL_STOP) and current_price <= tp_levels[0]):
+            if ((position_type == mt5.ORDER_TYPE_BUY_STOP or position_type == mt5.ORDER_TYPE_BUY_LIMIT) and current_price >= tp_levels_buy[0]) or ((position_type == mt5.ORDER_TYPE_SELL_LIMIT or position_type == mt5.ORDER_TYPE_SELL_STOP) and current_price <= tp_levels_sell[0]):
                 self.close_position(position_id)
