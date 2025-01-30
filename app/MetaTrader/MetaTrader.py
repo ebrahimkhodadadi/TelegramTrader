@@ -703,19 +703,6 @@ class MetaTrader:
         pending_orders = self.get_pending_orders()
 
         for order in pending_orders:
-            # at first check if one of the poistions executed
-            positions = Database.Migrations.get_signal_positions_by_positionId(
-                order.ticket)
-            if (len(positions) == 0):
-                continue
-            position = self.get_open_positions(positions[0]['position_id'])
-            if (position is None and len(positions) == 2):
-                position = self.get_open_positions(positions[1]['position_id'])
-            else:
-                continue
-            if (position is None):
-                continue
-
             position_id = order.ticket
             position_type = order.type  # Buy = 0, Sell = 1
             symbol = order.symbol
@@ -728,4 +715,22 @@ class MetaTrader:
             current_price = self.get_current_price(symbol)
 
             if ((position_type == mt5.ORDER_TYPE_BUY_STOP or position_type == mt5.ORDER_TYPE_BUY_LIMIT) and current_price >= tp_levels_buy[0]) or ((position_type == mt5.ORDER_TYPE_SELL_LIMIT or position_type == mt5.ORDER_TYPE_SELL_STOP) and current_price <= tp_levels_sell[0]):
+                # at first check if one of the poistions executed
+                positions = Database.Migrations.get_signal_positions_by_positionId(position_id)
+                signal = Database.Migrations.get_signal_by_positionId(position_id)
+                
+                if (len(positions) == 0):
+                    continue
+                
+                if(signal['second_price'] is None or signal['second_price'] == 0):
+                    self.close_position(position_id)
+                    
+                position = self.get_open_positions(positions[0]['position_id'])
+                if (position is None and len(positions) == 2):
+                    position = self.get_open_positions(positions[1]['position_id'])
+                else:
+                    continue
+                if (position is None):
+                    continue
+                
                 self.close_position(position_id)
