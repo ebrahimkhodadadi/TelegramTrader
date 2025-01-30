@@ -54,6 +54,33 @@ class MetaTrader:
                 return False
         return True
 
+    def GetSymbols():
+        try:
+            cfg = Configure.GetSettings()
+            accounts = [MetaTrader.MetaTraderAccount(
+                acc) for acc in cfg["MetaTrader"]]
+
+            account = accounts[0]
+            mt = MetaTrader(
+                path=account.path,
+                server=account.server,
+                user=account.username,
+                password=account.password
+            )
+            if not mt.Login():
+                logger.error(f"Failed to login to {mt.server}")
+                return None
+
+            symbols = mt5.symbols_get()
+
+            # Shutdown MT5 connection
+            mt5.shutdown()
+
+            return {symbol.name for symbol in symbols}
+        except Exception as ex:
+            logger.error(f"Unexpected error in get symbols: {ex}")
+            return None
+
     def get_current_price(self, symbol: str):
         """Get the current price of the symbol"""
         tick = mt5.symbol_info_tick(symbol)
@@ -452,15 +479,17 @@ class MetaTrader:
                 self.path = os.path.join(current_path, "terminal64.exe")
             # Check if the file exists
             if not os.path.exists(self.path):
-                raise FileNotFoundError(f"Error: The file does not exist at path: {self.path}")
-    
+                raise FileNotFoundError(
+                    f"Error: The file does not exist at path: {self.path}")
+
             self.TakeProfit = account_dict.get('TakeProfit')
             self.server = account_dict.get('server')
             self.username = account_dict.get('username')
             self.password = account_dict.get('password')
             self.lot = account_dict.get('lot')
             self.HighRisk = account_dict.get('HighRisk')
-            self.expirePendinOrderInMinutes = account_dict.get('expirePendinOrderInMinutes')
+            self.expirePendinOrderInMinutes = account_dict.get(
+                'expirePendinOrderInMinutes')
 
 # ==============================
 # POSITION
@@ -708,7 +737,7 @@ class MetaTrader:
             symbol = order.symbol
 
             tp_levels = Database.Migrations.get_tp_levels(position_id)
-            
+
             tp_levels_buy = sorted(map(float, tp_levels))
             tp_levels_sell = sorted(map(float, tp_levels), reverse=True)
 
@@ -716,21 +745,24 @@ class MetaTrader:
 
             if ((position_type == mt5.ORDER_TYPE_BUY_STOP or position_type == mt5.ORDER_TYPE_BUY_LIMIT) and current_price >= tp_levels_buy[0]) or ((position_type == mt5.ORDER_TYPE_SELL_LIMIT or position_type == mt5.ORDER_TYPE_SELL_STOP) and current_price <= tp_levels_sell[0]):
                 # at first check if one of the poistions executed
-                positions = Database.Migrations.get_signal_positions_by_positionId(position_id)
-                signal = Database.Migrations.get_signal_by_positionId(position_id)
-                
+                positions = Database.Migrations.get_signal_positions_by_positionId(
+                    position_id)
+                signal = Database.Migrations.get_signal_by_positionId(
+                    position_id)
+
                 if (len(positions) == 0):
                     continue
-                
-                if(signal['second_price'] is None or signal['second_price'] == 0):
+
+                if (signal['second_price'] is None or signal['second_price'] == 0):
                     self.close_position(position_id)
-                    
+
                 position = self.get_open_positions(positions[0]['position_id'])
                 if (position is None and len(positions) == 2):
-                    position = self.get_open_positions(positions[1]['position_id'])
+                    position = self.get_open_positions(
+                        positions[1]['position_id'])
                 else:
                     continue
                 if (position is None):
                     continue
-                
+
                 self.close_position(position_id)

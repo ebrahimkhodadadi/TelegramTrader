@@ -3,6 +3,7 @@ from loguru import logger
 import json
 import re
 import os
+from MetaTrader import *
 
 def parse_message(message):
     try:
@@ -206,7 +207,9 @@ class TradeType(Enum):
     Sell = 2
 
 
-def read_symbol_list(json_file_path):
+def read_symbol_list():
+    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    json_file_path = os.path.join(root_dir, "data", "Symbols.json");
     try:
         with open(json_file_path, 'r') as file:
             data = json.load(file)
@@ -218,9 +221,7 @@ def read_symbol_list(json_file_path):
 
 
 def GetSymbol(sentence):
-    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-    path = os.path.join(root_dir, "data", "Symbols.json");
-    symbol_list = read_symbol_list(path)
+    symbol_list = MetaTrader.GetSymbols()
     words = sentence.split()
     for word in words:
         word = word.replace("/", "").replace("-", "")
