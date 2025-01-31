@@ -551,7 +551,7 @@ class MetaTrader:
             openPrice = mt.validate(actionType, openPrice, symbol)
             if secondPrice != None and secondPrice != 0:
                 secondPrice = mt.validate(actionType, secondPrice, symbol)
-                if (actionType == mt5.ORDER_TYPE_BUY and openPrice < secondPrice) or (actionType == mt5.ORDER_TYPE_SELL and openPrice > secondPrice):
+                if (actionType == mt5.ORDER_TYPE_BUY and openPrice > secondPrice) or (actionType == mt5.ORDER_TYPE_SELL and openPrice < secondPrice):
                     openPrice, secondPrice = secondPrice, openPrice
 
             validated_tp_levels = []
