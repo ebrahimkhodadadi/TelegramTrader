@@ -19,24 +19,23 @@ class MetaTrader:
         self.user = user
         self.password = password
         self.magic = 2025
-        self.connected = False
 
     def Login(self) -> bool:
         try:
+            if mt5.terminal_info() is not None:
+                return True
+            
             logger.info(f"try to login to {self.server} with {self.user}")
             # establish connection to the MetaTrader 5 terminal
             if not mt5.initialize(path=self.path, login=self.user, server=self.server, password=self.password):
                 logger.error("MetaTrader Login failed, error code =",
                              mt5.last_error())
-                self.connected = False
-                return self.connected
+                return False
             logger.success(f"login was successful for {self.user}")
-            self.connected = True
-            return self.connected
+            return True
         except Exception as e:
             logger.error(f"Unexpected error: {e}")
-            self.connected = False
-            return self.connected
+            return False
 
     def CheckSymbol(self, symbol):
         logger.info("Check symbol " + symbol)
@@ -81,10 +80,14 @@ class MetaTrader:
             logger.error(f"Unexpected error in get symbols: {ex}")
             return None
 
-    def get_current_price(self, symbol: str):
+    def get_current_price(self, symbol, action=None):
         """Get the current price of the symbol"""
         tick = mt5.symbol_info_tick(symbol)
         # logger.info(f"{symbol} current price is: {tick.bid}")
+        if action == mt5.ORDER_TYPE_BUY:
+            return tick.ask if tick else None 
+        elif action == mt5.ORDER_TYPE_SELL:
+            return tick.bid if tick else None 
         return tick.bid if tick else None
 
     def get_open_positions(self, ticket_id=None):
@@ -255,15 +258,43 @@ class MetaTrader:
 
         return order_type_signal
 
-    def validate(self, price, symbol):
-        currentPrice = mt5.symbol_info_tick(symbol).bid
 
-        currentPrice = str(int(currentPrice))
-        priceStr = str(int(price))
-        if len(priceStr) != len(currentPrice):
-            return float(currentPrice[0:-len(priceStr)] + priceStr)
-        return float(price)
+    def validate(self, action, price, symbol, currentPrice=None, isTp=False):
+        """
+        اعتبارسنجی و اصلاح مقدار Take Profit برای خرید و فروش
+        :param action: نوع سفارش (BUY یا SELL)
+        :param price: مقدار TP یا مقدار ورودی کاربر
+        :param symbol: نام نماد
+        :param currentPrice: قیمت فعلی (در صورت نداشتن مقدار، به‌صورت خودکار دریافت می‌شود)
+        :return: مقدار TP اصلاح‌شده یا None در صورت نامعتبر بودن
+        """
+        if currentPrice is None:
+            currentPrice = self.get_current_price(symbol, action)    
+    
+        currentPrice = int(currentPrice)  # تبدیل قیمت به عدد صحیح
+        price = int(price)  # تبدیل مقدار ورودی به عدد صحیح
+        priceStr = str(price)
+        
+        if len(priceStr) < len(str(currentPrice)):
+            base = int(str(currentPrice)[:-len(priceStr)])  # قسمت ابتدایی قیمت فعلی
+            newPrice = float(f"{base}{price}")
+    
+            if isTp:
+                # تنظیم TP بر اساس نوع سفارش
+                if action == mt5.ORDER_TYPE_BUY:
+                    while newPrice <= currentPrice:  # افزایش برای BUY
+                        base += 1
+                        newPrice = float(f"{base}{price}")
+                elif action == mt5.ORDER_TYPE_SELL:
+                    while newPrice >= currentPrice:  # کاهش برای SELL
+                        base -= 1
+                        newPrice = float(f"{base}{price}")
 
+            return newPrice  # مقدار اصلاح‌شده را برگردان
+        
+        return float(price)  # اگر TP از ابتدا معتبر بود، همان را برگردان
+
+    
     def calculate_new_price(self, symbol, price, num_points, tp, actionType):
         """
         Calculate a new price by adding/subtracting a number of points to/from the given price.
@@ -519,16 +550,18 @@ class MetaTrader:
                 continue
 
             # validate
-            openPrice = mt.validate(openPrice, symbol)
-            sl = mt.validate(sl, symbol)
+            sl = mt.validate(actionType, sl, symbol)
+            openPrice = mt.validate(actionType, openPrice, symbol)
             if secondPrice != None and secondPrice != 0:
-                secondPrice = mt.validate(secondPrice, symbol)
+                secondPrice = mt.validate(actionType, secondPrice, symbol)
                 if (actionType == mt5.ORDER_TYPE_BUY and openPrice < secondPrice) or (actionType == mt5.ORDER_TYPE_SELL and openPrice > secondPrice):
                     openPrice, secondPrice = secondPrice, openPrice
 
             validated_tp_levels = []
             for tp_number in tp_list:
-                validated_tp_levels.append(mt.validate(tp_number, symbol))
+                validate_tp = mt.validate(actionType, tp_number, symbol, openPrice, True)
+                if validate_tp is not None and validate_tp != 0:
+                    validated_tp_levels.append(validate_tp)
 
             # save to db
             # Check if a similar record already exists in the database
@@ -578,7 +611,7 @@ class MetaTrader:
                 lot = mt.calculate_lot_size_with_prices(
                     symbol, mtAccount.lot, secondPrice, sl)
                 # validate
-                secondPrice = mt.validate(secondPrice, symbol)
+                secondPrice = mt.validate(actionType, secondPrice, symbol)
 
                 if mt.AnyPositionByData(symbol, secondPrice, sl, tp) == True:
                     logger.info(f"position already exist: symbol={
@@ -637,12 +670,12 @@ class MetaTrader:
         while True:  # Keep trying to reconnect
             try:
                 # Initial login/reconnect
-                if not self.connected:
-                    if not self.Login():
-                        logger.error(f"Failed to login to {
-                                     self.server}, retrying in 5 seconds...")
-                        await asyncio.sleep(5)
-                        continue
+                # if mt5.terminal_info() is None:
+                if not self.Login():
+                    logger.error(f"Failed to login to {
+                                 self.server}, retrying in 5 seconds...")
+                    await asyncio.sleep(5)
+                    continue
 
                     logger.success(f"Connected to {
                                    self.server}, starting monitoring...")
@@ -650,11 +683,9 @@ class MetaTrader:
                 # Main monitoring loop
                 while True:
                     # Check connection status periodically
-                    if not mt5.terminal_info().connected:
-                        logger.warning(f"Connection lost to {
-                                       self.server}, reconnecting...")
-                        self.connected = False
-                        break  # Break inner loop to reconnect
+                    # if mt5.terminal_info() is None:
+                    #     logger.warning(f"Connection lost to {self.server}, reconnecting...")
+                    #     break  # Break inner loop to reconnect
 
                     # Get and process positions
                     self.trailing()
@@ -665,7 +696,6 @@ class MetaTrader:
 
             except Exception as e:
                 logger.error(f"Monitoring error on {self.server}: {e}")
-                self.connected = False
                 await asyncio.sleep(5)
 
     def trailing(self):
@@ -685,13 +715,14 @@ class MetaTrader:
             trade_type = position.type
             symbol = position.symbol
 
+            tp_levels = Database.Migrations.get_tp_levels(ticket)
+            if not tp_levels or len(tp_levels) == 1:
+                continue
+            
             current_price = self.get_current_price(symbol)
             if not current_price:
                 continue
-
-            tp_levels = Database.Migrations.get_tp_levels(ticket)
-            if not tp_levels:
-                continue
+            
             tp_levels_buy = sorted(map(float, tp_levels))
             tp_levels_sell = sorted(map(float, tp_levels), reverse=True)
 
@@ -737,6 +768,8 @@ class MetaTrader:
             symbol = order.symbol
 
             tp_levels = Database.Migrations.get_tp_levels(position_id)
+            if(tp_levels is None):
+                continue
 
             tp_levels_buy = sorted(map(float, tp_levels))
             tp_levels_sell = sorted(map(float, tp_levels), reverse=True)

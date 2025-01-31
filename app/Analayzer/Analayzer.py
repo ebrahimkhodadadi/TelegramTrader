@@ -95,13 +95,16 @@ def GetTakeProfits(message):
                     r'tp\s*[-:]\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)
             if not tp_match:
                 tp_match = re.findall(
-                    r'TP\s*1\s*[-:]\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)
+                    r'tp\s*1\s*[-:]\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)
             if not tp_match:
                 tp_match = re.findall(
                     r'checkpoint\s*1\s*:\s*(\d+\.?\d*|OPEN)', message, re.IGNORECASE)
             if not tp_match:
                 tp_match = re.findall(
-                    r'Takeprofit\s*1\s*=\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)
+                    r'takeprofit\s*1\s*=\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)
+            if not tp_match:
+                tp_match = re.findall(
+                    r'take\s*profit\s*1\s*:\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)
             if not tp_match:
                 tp_match = re.findall(r'تی پی\s*(\d+)', message)
             if tp_match:
