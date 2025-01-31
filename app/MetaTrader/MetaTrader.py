@@ -558,6 +558,8 @@ class MetaTrader:
                     openPrice, secondPrice = secondPrice, openPrice
 
             validated_tp_levels = []
+            if tp_list is None:
+                return
             for tp_number in tp_list:
                 validate_tp = mt.validate(actionType, tp_number, symbol, openPrice, True)
                 if validate_tp is not None and validate_tp != 0:
