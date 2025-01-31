@@ -3,3 +3,9 @@
 config/
 .venv/
 *.session-journal
+*.db
+__pycache__/*
+__pycache__
+build/*
+dist/*
+*.pyc

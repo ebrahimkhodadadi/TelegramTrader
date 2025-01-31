@@ -8,5 +8,5 @@ def ConfigLogger():
     # config logger
     root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
     # TODO: just log error logs
-    log_file = os.path.join(root_dir, "Logs", "{time:YYYY-MM-DD}.log")
-    logger.add(log_file)
+    # log_file = os.path.join(root_dir, "Logs", "{time:YYYY-MM-DD}.log")
+    # logger.add(log_file)

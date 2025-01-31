@@ -1,6 +1,7 @@
 from notifiers import get_notifier
 from notifiers.logging import NotificationHandler
 from loguru import logger
+
 import Helper
 
 def ConfigNotification(token, chatId):
