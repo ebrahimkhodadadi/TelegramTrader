@@ -72,9 +72,6 @@ class MetaTrader:
 
             symbols = mt5.symbols_get()
 
-            # Shutdown MT5 connection
-            mt5.shutdown()
-
             return {symbol.name for symbol in symbols}
         except Exception as ex:
             logger.error(f"Unexpected error in get symbols: {ex}")
