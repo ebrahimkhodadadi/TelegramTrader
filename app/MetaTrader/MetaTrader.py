@@ -256,7 +256,7 @@ class MetaTrader:
         return order_type_signal
 
 
-    def validate(self, action, price, symbol, currentPrice=None, isTp=False):
+    def validate(self, action, price, symbol, currentPrice=None, isTp=False, isSl=False, isSecondPrice=False):
         """
         اعتبارسنجی و اصلاح مقدار Take Profit برای خرید و فروش
         :param action: نوع سفارش (BUY یا SELL)
@@ -287,8 +287,28 @@ class MetaTrader:
                         while newPrice >= currentPrice:  # کاهش برای SELL
                             base -= 1
                             newPrice = float(f"{base}{price}")
-
-                return newPrice  # مقدار اصلاح‌شده را برگردان
+                            
+                if isSl:
+                    if action == mt5.ORDER_TYPE_BUY:
+                        while newPrice >= currentPrice:  # کاهش برای BUY
+                            base -= 1
+                            newPrice = float(f"{base}{price}")
+                    elif action == mt5.ORDER_TYPE_SELL:
+                        while newPrice <= currentPrice:  # افزایش برای SELL
+                            base += 1
+                            newPrice = float(f"{base}{price}")
+                            
+                if isSecondPrice:
+                    if action == mt5.ORDER_TYPE_BUY:
+                        while newPrice >= currentPrice:  # اطمینان از کمتر بودن secondPrice در خرید
+                            base -= 1
+                            newPrice = float(f"{base}{price}")
+                    elif action == mt5.ORDER_TYPE_SELL:
+                        while newPrice <= currentPrice:  # اطمینان از بیشتر بودن secondPrice در فروش
+                            base += 1
+                            newPrice = float(f"{base}{price}")
+                
+                return newPrice
         
         return float(price)  # اگر TP از ابتدا معتبر بود، همان را برگردان
 
@@ -548,10 +568,10 @@ class MetaTrader:
                 continue
 
             # validate
-            sl = mt.validate(actionType, sl, symbol)
             openPrice = mt.validate(actionType, openPrice, symbol)
+            sl = mt.validate(actionType, sl, symbol, openPrice,isSl=True)
             if secondPrice != None and secondPrice != 0:
-                secondPrice = mt.validate(actionType, secondPrice, symbol)
+                secondPrice = mt.validate(actionType, secondPrice, symbol, isSecondPrice=True)
                 if (actionType == mt5.ORDER_TYPE_BUY and openPrice > secondPrice) or (actionType == mt5.ORDER_TYPE_SELL and openPrice < secondPrice):
                     openPrice, secondPrice = secondPrice, openPrice
 
@@ -559,7 +579,7 @@ class MetaTrader:
             if tp_list is None:
                 return
             for tp_number in tp_list:
-                validate_tp = mt.validate(actionType, tp_number, symbol, openPrice, True)
+                validate_tp = mt.validate(actionType, tp_number, symbol, openPrice,isTp=True)
                 if validate_tp is not None and validate_tp != 0:
                     validated_tp_levels.append(validate_tp)
 
