@@ -88,7 +88,7 @@ class Telegram:
         #     pass
 
         # open postion
-        Handle(messageType, text, message_link, username, message_id)
+        Handle(messageType, text, message_link, username, message_id, chat_id)
 
     async def GetMessageDetail(event):
         try:

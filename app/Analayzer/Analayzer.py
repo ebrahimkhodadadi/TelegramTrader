@@ -78,7 +78,7 @@ def GetTakeProfits(message):
         sentences = re.split(r'\n+', message)
         for sentence in sentences:
             words = re.findall(r'\b\d+\b|\btp\b', sentence.lower())
-            # Extract TP numbers
+            # Extract TP numbers for various formats
             tp_match = re.findall(
                 r'tp\s*(?:\d*\s*:\s*)?(\d+\.\d+)', sentence, re.IGNORECASE)
             if not tp_match:
@@ -109,26 +109,26 @@ def GetTakeProfits(message):
                 tp_match = re.findall(r'تی پی\s*(\d+)', message)
             if tp_match:
                 tp_numbers.extend([float(tp) for tp in tp_match])
-            if not tp_numbers or tp_numbers[0] == 1.0 or tp_numbers[0] == 1:
-                if 'tp' in words:
-                    index = words.index('tp')
-                    if index < len(words) - 1:  # Check if there's a number after "tp"
-                        try:
-                            tp_numbers.append(int(words[index + 1]))
-                        except ValueError:
-                            pass  # Ignore if the next word after "tp" is not a number
+            
+            # Add TP2, TP3, TP4, etc., extraction logic
+            tp_match_2 = re.findall(r'tp(\d+)\s*[:\-]?\s*(\d+\.\d+|\d+)', sentence, re.IGNORECASE)
+            if tp_match_2:
+                for tp in tp_match_2:
+                    tp_numbers.append(float(tp[1]))
+            
             # Check for comma-separated TP values in Persian
             persian_tp_match = re.findall(r'تی پی\s*([\d\s,،]+)', message)
             if persian_tp_match:
                 for match in persian_tp_match:
                     tp_numbers.extend([float(tp.strip()) for tp in re.split(r'[,\s،]+', match) if tp.strip().isdigit()])
+        
         if len(tp_numbers) == 0 or tp_numbers == 1.0:
             return None
         tp_numbers = set(tp_numbers)
         return {tp for tp in tp_numbers if tp != 1.0}
     except Exception as e:
-        # logger.error("Can't deserilize message '" +
-        #              message + "' for tp: \n" + e)
+        # logger.error("Can't deserialize message '" +
+        #               message + "' for tp: \n" + e)
         return None
 
 

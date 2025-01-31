@@ -522,7 +522,7 @@ class MetaTrader:
 # ==============================
 # POSITION
 # ==============================
-    def Trade(message_username, message_id, actionType, symbol, openPrice, secondPrice, tp_list, sl, comment):
+    def Trade(message_username, message_id, message_chatid, actionType, symbol, openPrice, secondPrice, tp_list, sl, comment):
         cfg = Configure.GetSettings()
         meta_trader_accounts = [MetaTrader.MetaTraderAccount(
             acc) for acc in cfg["MetaTrader"]]
@@ -575,6 +575,7 @@ class MetaTrader:
                 signal_data = {
                     "telegram_channel_title": message_username,
                     "telegram_message_id": message_id,
+                    "telegram_message_chatid": message_chatid,
                     "open_price": openPrice,
                     "second_price": secondPrice,
                     "stop_loss": sl,
@@ -620,7 +621,7 @@ class MetaTrader:
                 mt.OpenPosition(actionType, lot, symbol.upper(
                 ), sl, tp, secondPrice, mtAccount.expirePendinOrderInMinutes, comment, signal_id)
 
-    def CloseLastSignalPositions(message_username):
+    def CloseLastSignalPositions(message_chatid):
         cfg = Configure.GetSettings()
         meta_trader_accounts = [MetaTrader.MetaTraderAccount(
             acc) for acc in cfg["MetaTrader"]]
@@ -636,8 +637,7 @@ class MetaTrader:
             if mt.Login() == False:
                 continue
 
-            positions = Database.Migrations.get_last_signal_positions_by_username(
-                message_username)
+            positions = Database.Migrations.get_last_signal_positions_by_chatid(message_chatid)
             orders = mt.get_open_positions()
             for order in (o for o in orders if o.ticket in positions):
                 mt.close_position(order.ticket)
@@ -777,10 +777,8 @@ class MetaTrader:
 
             if ((position_type == mt5.ORDER_TYPE_BUY_STOP or position_type == mt5.ORDER_TYPE_BUY_LIMIT) and current_price >= tp_levels_buy[0]) or ((position_type == mt5.ORDER_TYPE_SELL_LIMIT or position_type == mt5.ORDER_TYPE_SELL_STOP) and current_price <= tp_levels_sell[0]):
                 # at first check if one of the poistions executed
-                positions = Database.Migrations.get_signal_positions_by_positionId(
-                    position_id)
-                signal = Database.Migrations.get_signal_by_positionId(
-                    position_id)
+                positions = Database.Migrations.get_signal_positions_by_positionId(position_id)
+                signal = Database.Migrations.get_signal_by_positionId(position_id)
 
                 if (len(positions) == 0):
                     continue

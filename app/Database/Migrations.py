@@ -9,6 +9,7 @@ signal_columns = {
     "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
     "telegram_channel_title": "TEXT NOT NULL",
     "telegram_message_id": "INTEGER",
+    "telegram_message_chatid": "INTEGER",
     "open_price": "REAL NOT NULL",
     "second_price": "REAL",
     "stop_loss": "REAL NOT NULL",
@@ -65,18 +66,17 @@ def get_tp_levels(ticket_id):
     return None
 
 
-def get_last_signal_positions_by_username(message_username):
+def get_last_signal_positions_by_chatid(chat_id):
     """Read last signal positions from the database"""
     query = """
         SELECT p.position_id 
         FROM positions p
         INNER JOIN signals s ON p.signal_id = s.id
-        WHERE s.telegram_channel_title = ?
+        WHERE s.telegram_message_chatid = ?
         ORDER BY p.signal_id DESC, p.id DESC
         LIMIT 2
     """
-    positions = position_repo.execute_query(
-        query, (message_username,))  # Add a comma to make it a tuple
+    positions = position_repo.execute_query(query, (chat_id,))  # Add a comma to make it a tuple
     return [x[0] for x in positions]
 
 
@@ -100,12 +100,13 @@ def get_last_record(open_price, second_price, stop_loss, symbol):
         "id": result[0],
         "telegram_channel_title": result[1],
         "telegram_message_id": result[2],
-        "open_price": result[3],
-        "second_price": result[4],
-        "stop_loss": result[5],
-        "tp_list": result[6],
-        "symbol": result[7],
-        "current_time": result[8]
+        "telegram_message_chatid": result[3],
+        "open_price": result[4],
+        "second_price": result[5],
+        "stop_loss": result[6],
+        "tp_list": result[7],
+        "symbol": result[8],
+        "current_time": result[9]
     }
 
     return signal_columns
@@ -130,12 +131,13 @@ def get_signal_by_positionId(ticket_id):
         "id": result[0],
         "telegram_channel_title": result[1],
         "telegram_message_id": result[2],
-        "open_price": result[3],
-        "second_price": result[4],
-        "stop_loss": result[5],
-        "tp_list": result[6],
-        "symbol": result[7],
-        "current_time": result[8]
+        "telegram_message_chatid": result[3],
+        "open_price": result[4],
+        "second_price": result[5],
+        "stop_loss": result[6],
+        "tp_list": result[7],
+        "symbol": result[8],
+        "current_time": result[9]
     }
     return signal_columns
 
