@@ -265,29 +265,30 @@ class MetaTrader:
         :param currentPrice: قیمت فعلی (در صورت نداشتن مقدار، به‌صورت خودکار دریافت می‌شود)
         :return: مقدار TP اصلاح‌شده یا None در صورت نامعتبر بودن
         """
-        if currentPrice is None:
-            currentPrice = self.get_current_price(symbol, action)    
-    
-        currentPrice = int(currentPrice)  # تبدیل قیمت به عدد صحیح
-        price = int(price)  # تبدیل مقدار ورودی به عدد صحیح
-        priceStr = str(price)
         
-        if len(priceStr) < len(str(currentPrice)):
-            base = int(str(currentPrice)[:-len(priceStr)])  # قسمت ابتدایی قیمت فعلی
-            newPrice = float(f"{base}{price}")
-    
-            if isTp:
-                # تنظیم TP بر اساس نوع سفارش
-                if action == mt5.ORDER_TYPE_BUY:
-                    while newPrice <= currentPrice:  # افزایش برای BUY
-                        base += 1
-                        newPrice = float(f"{base}{price}")
-                elif action == mt5.ORDER_TYPE_SELL:
-                    while newPrice >= currentPrice:  # کاهش برای SELL
-                        base -= 1
-                        newPrice = float(f"{base}{price}")
+        if symbol == "XAUUSD": # bug: need to fix because current price returns wrong rounded number
+            if currentPrice is None:
+                currentPrice = self.get_current_price(symbol, action)    
 
-            return newPrice  # مقدار اصلاح‌شده را برگردان
+            currentPrice = int(currentPrice)  # تبدیل قیمت به عدد صحیح
+            price = int(price)  # تبدیل مقدار ورودی به عدد صحیح
+            priceStr = str(price)
+            if len(priceStr) < len(str(currentPrice)):
+                base = int(str(currentPrice)[:-len(priceStr)])  # قسمت ابتدایی قیمت فعلی
+                newPrice = float(f"{base}{price}")
+
+                if isTp:
+                    # تنظیم TP بر اساس نوع سفارش
+                    if action == mt5.ORDER_TYPE_BUY:
+                        while newPrice <= currentPrice:  # افزایش برای BUY
+                            base += 1
+                            newPrice = float(f"{base}{price}")
+                    elif action == mt5.ORDER_TYPE_SELL:
+                        while newPrice >= currentPrice:  # کاهش برای SELL
+                            base -= 1
+                            newPrice = float(f"{base}{price}")
+
+                return newPrice  # مقدار اصلاح‌شده را برگردان
         
         return float(price)  # اگر TP از ابتدا معتبر بود، همان را برگردان
 
