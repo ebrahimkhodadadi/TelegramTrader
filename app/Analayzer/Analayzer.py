@@ -116,13 +116,16 @@ def GetTakeProfits(message):
                 for tp in tp_match_2:
                     tp_numbers.append(float(tp[1]))
             
-        # Check for comma-separated TP values in Persian
-        persian_tp_match = re.findall(r'تی پی\s*([\d\s,،]+)', message)
-        if persian_tp_match:
-            persian_tp_numbers = []
-            for match in persian_tp_match:
-                persian_tp_numbers.extend([float(tp.strip()) for tp in re.split(r'[,\s،]+', match) if tp.strip().isdigit()])
-            return persian_tp_numbers
+            # Check for comma-separated TP values in Persian
+            persian_tp_match = re.findall(r'تی پی\s*([\d\s,،]+)', sentence)
+            if persian_tp_match:
+                persian_tp_numbers = []
+                for match in persian_tp_match:
+                    persian_tp_numbers.extend(
+                        [float(tp.strip()) for tp in re.split(r'[,\s،]+', match) if tp.strip().isdigit() and '/' not in tp]
+                    )
+                return persian_tp_numbers
+
         
         if len(tp_numbers) == 0 or tp_numbers == 1.0:
             return None
