@@ -747,7 +747,7 @@ class MetaTrader:
                 continue
 
             # entry_price = position.price_open
-            entry_price = signal["open_price"]
+            entry_price = signal["second_price"]
             ticket = position.ticket
             lots = position.volume
             stop_loss = position.sl

@@ -5,12 +5,12 @@ import Configure
 import Helper
 from Telegram.Telegram import *
 from MetaTrader import *
-import pyfiglet 
+# import pyfiglet 
 
 async def main():
     try:
-        styled_text=pyfiglet.figlet_format('Telegram Trader',font= 'doom')
-        print(styled_text)
+        # styled_text=pyfiglet.figlet_format('Telegram Trader',font= 'doom')
+        # print(styled_text)
         logger.info("Starting...")
 
         # Get settings
