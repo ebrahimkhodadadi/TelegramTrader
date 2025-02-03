@@ -256,61 +256,84 @@ class MetaTrader:
         return order_type_signal
 
 
-    def validate(self, action, price, symbol, currentPrice=None, isTp=False, isSl=False, isSecondPrice=False):
-        """
-        اعتبارسنجی و اصلاح مقدار Take Profit برای خرید و فروش
-        :param action: نوع سفارش (BUY یا SELL)
-        :param price: مقدار TP یا مقدار ورودی کاربر
-        :param symbol: نام نماد
-        :param currentPrice: قیمت فعلی (در صورت نداشتن مقدار، به‌صورت خودکار دریافت می‌شود)
-        :return: مقدار TP اصلاح‌شده یا None در صورت نامعتبر بودن
-        """
+    def validate(self, action, price, symbol, currentPrice=None, isSl=False, isSecondPrice=False):        
+        if symbol != "XAUUSD": # bug: need to fix because current price returns wrong rounded number
+            return float(price)
         
-        if symbol == "XAUUSD": # bug: need to fix because current price returns wrong rounded number
-            if currentPrice is None:
-                currentPrice = self.get_current_price(symbol, action)    
+        if currentPrice is None:
+            currentPrice = self.get_current_price(symbol, action)    
+        currentPrice = int(currentPrice)  # تبدیل قیمت به عدد صحیح
+        price = int(price)  # تبدیل مقدار ورودی به عدد صحیح
+        priceStr = str(price)
+        if len(priceStr) < len(str(currentPrice)):
+            base = int(str(currentPrice)[:-len(priceStr)])  # قسمت ابتدایی قیمت فعلی
+            newPrice = float(f"{base}{price}")
+                        
+            if isSl:
+                if action == mt5.ORDER_TYPE_BUY:
+                    while newPrice >= currentPrice:  # کاهش برای BUY
+                        base -= 1
+                        newPrice = float(f"{base}{price}")
+                elif action == mt5.ORDER_TYPE_SELL:
+                    while newPrice <= currentPrice:  # افزایش برای SELL
+                        base += 1
+                        newPrice = float(f"{base}{price}")
+                        
+            if isSecondPrice:
+                if action == mt5.ORDER_TYPE_BUY:
+                    while newPrice >= currentPrice:  # اطمینان از کمتر بودن secondPrice در خرید
+                        base -= 1
+                        newPrice = float(f"{base}{price}")
+                elif action == mt5.ORDER_TYPE_SELL:
+                    while newPrice <= currentPrice:  # اطمینان از بیشتر بودن secondPrice در فروش
+                        base += 1
+                        newPrice = float(f"{base}{price}")
+            
+            return newPrice
+        
+        return float(price)  # اگر TP از ابتدا معتبر بود، همان را برگردان
+    
+    
+    def validate_tp_list(self, action, tp_list, symbol, currentPrice=None):        
+        if symbol != "XAUUSD":
+            return tp_list
 
+        validated_tp_levels = []
+
+        if currentPrice is None:
+            currentPrice = self.get_current_price(symbol, action)    
+
+        last_price = None  # ذخیره آخرین مقدار TP معتبر برای استفاده در مقدار جدید
+
+        for price in tp_list:
             currentPrice = int(currentPrice)  # تبدیل قیمت به عدد صحیح
             price = int(price)  # تبدیل مقدار ورودی به عدد صحیح
             priceStr = str(price)
-            if len(priceStr) < len(str(currentPrice)):
-                base = int(str(currentPrice)[:-len(priceStr)])  # قسمت ابتدایی قیمت فعلی
-                newPrice = float(f"{base}{price}")
 
-                if isTp:
-                    # تنظیم TP بر اساس نوع سفارش
-                    if action == mt5.ORDER_TYPE_BUY:
-                        while newPrice <= currentPrice:  # افزایش برای BUY
-                            base += 1
-                            newPrice = float(f"{base}{price}")
-                    elif action == mt5.ORDER_TYPE_SELL:
-                        while newPrice >= currentPrice:  # کاهش برای SELL
-                            base -= 1
-                            newPrice = float(f"{base}{price}")
-                            
-                if isSl:
-                    if action == mt5.ORDER_TYPE_BUY:
-                        while newPrice >= currentPrice:  # کاهش برای BUY
-                            base -= 1
-                            newPrice = float(f"{base}{price}")
-                    elif action == mt5.ORDER_TYPE_SELL:
-                        while newPrice <= currentPrice:  # افزایش برای SELL
-                            base += 1
-                            newPrice = float(f"{base}{price}")
-                            
-                if isSecondPrice:
-                    if action == mt5.ORDER_TYPE_BUY:
-                        while newPrice >= currentPrice:  # اطمینان از کمتر بودن secondPrice در خرید
-                            base -= 1
-                            newPrice = float(f"{base}{price}")
-                    elif action == mt5.ORDER_TYPE_SELL:
-                        while newPrice <= currentPrice:  # اطمینان از بیشتر بودن secondPrice در فروش
-                            base += 1
-                            newPrice = float(f"{base}{price}")
-                
-                return newPrice
-        
-        return float(price)  # اگر TP از ابتدا معتبر بود، همان را برگردان
+            # استفاده از مقدار قبلی در صورتی که price کوتاه‌تر باشد
+            if last_price is not None and len(priceStr) < len(str(last_price)):
+                base = int(str(last_price)[:-len(priceStr)])  # گرفتن بخش ابتدایی از مقدار قبلی
+            else:
+                base = int(str(currentPrice)[:-len(priceStr)])  # گرفتن بخش ابتدایی از قیمت فعلی
+
+            newPrice = float(f"{base}{price}")
+
+            # تنظیم TP بر اساس نوع سفارش
+            if action == mt5.ORDER_TYPE_BUY:
+                while newPrice <= currentPrice:  # افزایش برای BUY
+                    base += 1
+                    newPrice = float(f"{base}{price}")
+            elif action == mt5.ORDER_TYPE_SELL:
+                while newPrice >= currentPrice:  # کاهش برای SELL
+                    base -= 1
+                    newPrice = float(f"{base}{price}")
+
+            if newPrice is not None and newPrice != 0:
+                validated_tp_levels.append(newPrice)
+                last_price = int(newPrice)  # ذخیره آخرین مقدار معتبر
+
+        return validated_tp_levels
+
 
     
     def calculate_new_price(self, symbol, price, num_points, tp, actionType):
@@ -575,13 +598,9 @@ class MetaTrader:
                 if (actionType == mt5.ORDER_TYPE_BUY and openPrice > secondPrice) or (actionType == mt5.ORDER_TYPE_SELL and openPrice < secondPrice):
                     openPrice, secondPrice = secondPrice, openPrice
 
-            validated_tp_levels = []
             if tp_list is None:
                 return
-            for tp_number in tp_list:
-                validate_tp = mt.validate(actionType, tp_number, symbol, openPrice,isTp=True)
-                if validate_tp is not None and validate_tp != 0:
-                    validated_tp_levels.append(validate_tp)
+            validated_tp_levels = mt.validate_tp_list(actionType, tp_list, symbol, openPrice)
 
             # save to db
             # Check if a similar record already exists in the database
@@ -751,6 +770,7 @@ class MetaTrader:
                 for i, tp in enumerate(tp_levels_buy):
                     # اگر قیمت به سطح TP رسید و حجم نصف نشده است
                     if current_price >= tp and stop_loss < tp:
+                        # logger.warning(f"Riched Trailing for Buy poistion {ticket}, current price: {current_price}, tp: {tp}")
                         if (lots <= 0.01):
                             self.close_position(ticket)
 
@@ -766,6 +786,7 @@ class MetaTrader:
                 for i, tp in enumerate(tp_levels_sell):
                     # اگر قیمت به سطح TP رسید و حجم نصف نشده است
                     if current_price <= tp and stop_loss > tp:
+                        # logger.warning(f"Riched Trailing for Sell poistion {ticket}, current price: {current_price}, tp: {tp}")
                         if (lots <= 0.01):
                             self.close_position(ticket)
 
