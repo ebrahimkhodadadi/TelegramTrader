@@ -832,8 +832,7 @@ class MetaTrader:
                 if (position is None and len(positions) == 2):
                     position = self.get_open_positions(
                         positions[1]['position_id'])
-                else:
-                    continue
+
                 if (position is None):
                     continue
 
