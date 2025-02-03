@@ -306,7 +306,7 @@ class MetaTrader:
         last_price = None  # ذخیره آخرین مقدار TP معتبر برای استفاده در مقدار جدید
 
         for price in tp_list:
-            if len(str(price)) == len(str(currentPrice)):
+            if len(str(int(price))) == len(str(int(currentPrice))):
                 validated_tp_levels.append(price)
                 continue
             
