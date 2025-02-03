@@ -750,8 +750,10 @@ class MetaTrader:
             if signal is None:
                 continue
 
-            # entry_price = position.price_open
-            entry_price = signal["second_price"]
+            if signal["second_price"] is not None:
+                entry_price = signal["second_price"]
+            else:
+                entry_price = signal["open_price"]
             ticket = position.ticket
             lots = position.volume
             stop_loss = position.sl
