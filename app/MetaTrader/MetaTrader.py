@@ -193,52 +193,72 @@ class MetaTrader:
         position = self.get_open_positions(ticket)
         action = mt5.TRADE_ACTION_DEAL
 
-        # If no open position is found, check for pending orders
+        # If no open position found, check for pending orders
         if position is None:
             position = self.get_pending_orders(ticket)
             action = mt5.TRADE_ACTION_REMOVE
 
-        # If no position or pending order exists, log and exit
         if position is None:
-            logger.error(f"Can't find position or order with ticket {
-                         ticket} to close.")
+            logger.error(f"Can't find position/order with ticket {ticket}")
             return False
 
-        # Determine symbol, volume, and price based on the position type
         symbol = position.symbol
         volume = position.volume if hasattr(
-            position, "volume") else position.volume_current
-        price = (
-            mt5.symbol_info_tick(
-                symbol).bid if position.type == mt5.ORDER_TYPE_BUY else mt5.symbol_info_tick(symbol).ask
-        )
+                    position, "volume") else position.volume_current
 
-        # Build the close request
+        # Initialize variables for request
         request = {
             "action": action,
-            "symbol": symbol,
-            "volume": volume,
-            "price": price,
-            "deviation": 10,
             "magic": self.magic,
             "comment": "Closing position",
             "type_time": mt5.ORDER_TIME_GTC,
             "type_filling": mt5.ORDER_FILLING_IOC,
         }
-        if action == mt5.TRADE_ACTION_REMOVE:
-            request["order"] = ticket
-        else:
-            request["position"] = ticket
 
-        # Send the close order request
+        if action == mt5.TRADE_ACTION_DEAL:
+            # Handle closing an open position
+            if position.type not in [mt5.POSITION_TYPE_BUY, mt5.POSITION_TYPE_SELL]:
+                logger.error(f"Invalid position type for ticket {ticket}")
+                return False
+
+            # Determine direction and price
+            if position.type == mt5.POSITION_TYPE_BUY:
+                order_type = mt5.ORDER_TYPE_SELL  # Sell to close buy
+                price = mt5.symbol_info_tick(symbol).bid
+            else:
+                order_type = mt5.ORDER_TYPE_BUY   # Buy to close sell
+                price = mt5.symbol_info_tick(symbol).ask
+
+            # Validate tick data
+            tick = mt5.symbol_info_tick(symbol)
+            if tick is None:
+                logger.error(f"Failed to get tick data for {symbol}")
+                return False
+            price = tick.bid if order_type == mt5.ORDER_TYPE_SELL else tick.ask
+
+            # Build request for closing position
+            request.update({
+                "symbol": symbol,
+                "volume": volume,
+                "price": price,
+                "deviation": 10,
+                "type": order_type,
+                "position": ticket  # Specify the position ticket
+            })
+        else:
+            # Handle removing a pending order
+            request.update({
+                "order": ticket  # Only include necessary fields
+            })
+
+        # Send the request
         result = mt5.order_send(request)
 
         if result.retcode != mt5.TRADE_RETCODE_DONE:
-            logger.error(f"Failed to close position {
-                         ticket}: {result.comment}")
+            logger.error(f"Failed to close {ticket}: {result.comment}")
             return False
 
-        logger.success(f"Successfully closed position {ticket}.")
+        logger.success(f"Closed position/order {ticket} successfully.")
         return True
 
     def determine_order_type_and_price(self, current_price, open_order_price, order_type_signal):

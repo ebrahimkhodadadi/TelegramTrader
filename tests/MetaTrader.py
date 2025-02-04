@@ -12,8 +12,8 @@ class TestMetaTrader(unittest.TestCase):
         self.mt = MetaTrader(
             path="C:/Users/Trade/Desktop/1/terminal64.exe",
             server="CapitalxtendLLC-MU",
-            user=10187248,
-            password="1A(f4@@eSoZ4"
+            user=101872,
+            password="1A(@@eSoZ4"
         )
         self.symbol = "XAUUSD"
         if not self.mt.Login():
