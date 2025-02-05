@@ -146,8 +146,8 @@ class MetaTrader:
             else:
                 logger.success(f"Successfully closed half position for {
                                position.symbol}, ticket {ticket}")
-        else:
-            self.close_position(ticket)
+        # else:
+        #     self.close_position(ticket)
 
     def update_stop_loss(self, ticket, new_stop_loss):
         """Updating stop loss"""
@@ -797,8 +797,8 @@ class MetaTrader:
                     # اگر قیمت به سطح TP رسید و حجم نصف نشده است
                     if current_price >= tp and stop_loss < tp:
                         # logger.warning(f"Riched Trailing for Buy poistion {ticket}, current price: {current_price}, tp: {tp}")
-                        if (lots <= 0.01):
-                            self.close_position(ticket)
+                        # if (lots <= 0.01):
+                        #     self.close_position(ticket)
 
                         # انتقال Stop Loss به سطح قبلی یا نقطه ورود
                         new_stop_loss = tp_levels_buy[i -
@@ -813,8 +813,8 @@ class MetaTrader:
                     # اگر قیمت به سطح TP رسید و حجم نصف نشده است
                     if current_price <= tp and stop_loss > tp:
                         # logger.warning(f"Riched Trailing for Sell poistion {ticket}, current price: {current_price}, tp: {tp}")
-                        if (lots <= 0.01):
-                            self.close_position(ticket)
+                        # if (lots <= 0.01):
+                        #     self.close_position(ticket)
 
                         # انتقال Stop Loss به سطح قبلی یا نقطه ورود
                         new_stop_loss = tp_levels_sell[i -
