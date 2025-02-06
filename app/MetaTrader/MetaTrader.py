@@ -133,7 +133,7 @@ class MetaTrader:
                 "price": mt5.symbol_info_tick(position.symbol).bid if position.type == mt5.ORDER_TYPE_BUY else mt5.symbol_info_tick(position.symbol).ask,
                 "deviation": 10,
                 "magic": self.magic,
-                "comment": "Closing half position",
+                # "comment": "Closing half position",
                 "type_time": mt5.ORDER_TIME_GTC,
                 "type_filling": mt5.ORDER_FILLING_IOC,
             }
@@ -173,7 +173,7 @@ class MetaTrader:
             "tp": position.tp,
             "magic": self.magic,
             "deviation": 10,
-            "comment": "Updating stop loss",
+            # "comment": "Updating stop loss",
         }
 
         # Send the modification request
@@ -210,7 +210,7 @@ class MetaTrader:
         request = {
             "action": action,
             "magic": self.magic,
-            "comment": "Closing position",
+            # "comment": "Closing position",
             "type_time": mt5.ORDER_TIME_GTC,
             "type_filling": mt5.ORDER_FILLING_IOC,
         }
@@ -388,7 +388,7 @@ class MetaTrader:
 
         return float(price)
 
-    def calculate_lot_size_with_prices(self, symbol, risk_percentage, open_price, stop_loss_price):
+    def calculate_lot_size_with_prices(self, symbol, risk_percentage, open_price, stop_loss_price, account_size):
         """
         Calculate the lot size per account size, risk percentage, open position price, and stop loss price.
 
@@ -406,7 +406,8 @@ class MetaTrader:
 
         risk_percentage = float(risk_percentage.replace("%", ""))
 
-        account_size = mt5.account_info().balance
+        if account_size is None or account_size == 0:
+            account_size = mt5.account_info().balance
         tick_value = mt5.symbol_info(symbol).trade_tick_value
         tick_size = mt5.symbol_info(symbol).trade_tick_size
 
@@ -472,7 +473,7 @@ class MetaTrader:
                 "tp": takeProfit,
                 "type_filling": mt5.ORDER_FILLING_IOC,
                 # comment.replace("https://t.me/", ""),
-                "comment": "TelegramTrader",
+                # "comment": "TelegramTrader",
                 "deviation": deviation,
                 "magic": self.magic,
                 "type_time": mt5.ORDER_TIME_GTC,
@@ -584,6 +585,7 @@ class MetaTrader:
             self.password = account_dict.get('password')
             self.lot = account_dict.get('lot')
             self.HighRisk = account_dict.get('HighRisk')
+            self.account_size = account_dict.get('AccountSize')
             self.expirePendinOrderInMinutes = account_dict.get(
                 'expirePendinOrderInMinutes')
 
@@ -660,8 +662,7 @@ class MetaTrader:
                 tp = min(tp_levels)
 
             # lot
-            lot = mt.calculate_lot_size_with_prices(
-                symbol, mtAccount.lot, openPrice, sl)
+            lot = mt.calculate_lot_size_with_prices(symbol, mtAccount.lot, openPrice, sl, mtAccount.account_size)
 
             if mt.AnyPositionByData(symbol, openPrice, sl, tp) == True:
                 logger.info(f"position already exist: symbol={
@@ -672,8 +673,7 @@ class MetaTrader:
 
             if secondPrice is not None and secondPrice != 0 and mtAccount.HighRisk == True:
                 # lot
-                lot = mt.calculate_lot_size_with_prices(
-                    symbol, mtAccount.lot, secondPrice, sl)
+                lot = mt.calculate_lot_size_with_prices(symbol, mtAccount.lot, secondPrice, sl, mtAccount.account_size)
                 # validate
                 secondPrice = mt.validate(actionType, secondPrice, symbol)
 
