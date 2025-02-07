@@ -1,4 +1,5 @@
 from enum import Enum
+import unicodedata
 from loguru import logger
 import json
 import re
@@ -10,7 +11,7 @@ def parse_message(message):
         if message is None or len(message) < 0:
             return None, None, None, None, None, None
 
-        message = message.lower()
+        message = clean_text(message.lower())
 
         actionType = get_main_word_actiontype(message)
         if actionType is None:
@@ -25,6 +26,11 @@ def parse_message(message):
         logger.error("Error while deserilize message: \n" + e)
         return None, None, None, None, None, None
 
+def clean_text(text):
+    """Normalize text by removing only special Unicode formatting, keeping Persian and new lines."""
+    text = unicodedata.normalize("NFKC", text)  # Normalize bold/italic Unicode
+    text = re.sub(r'[^\S\r\n]+', ' ', text)  # Remove excessive spaces but keep new lines
+    return text.strip()
 
 def GetFirstPrice(message):
     try:
@@ -104,7 +110,10 @@ def GetTakeProfits(message):
                     r'takeprofit\s*1\s*=\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)
             if not tp_match:
                 tp_match = re.findall(
-                    r'take\s*profit\s*1\s*:\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)
+                    r'take\s*profit\s*1\s*:\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)      
+            if not tp_match:
+                tp_match = re.findall(
+                    r'tp\s*(?:\d*[\s:]+)?(\d+\.\d+|\d+)', sentence, re.IGNORECASE)
             if not tp_match:
                 tp_match = re.findall(r'تی پی\s*(\d+)', message)
             if tp_match:
@@ -171,7 +180,9 @@ def GetStopLoss(message):
                 sl_match = re.search(
                     r'Stoploss\s*=\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)  
             if not sl_match:
-                sl_match = re.search(r'SL\s*@\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)
+                sl_match = re.search(r'SL\s*@\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)   
+            if not sl_match:
+                sl_match = re.search(r'(?i)stop\s*loss\s*(\d+)', message) 
             if not sl_match:
                 sl_match = re.search(
                     r'استاپ\s*(\d+\.?\d*)', message, re.IGNORECASE)
@@ -197,7 +208,7 @@ def GetStopLoss(message):
 
 def get_main_word_actiontype(sentence):
     buy_list = ['buy', 'بخر', 'خرید']
-    sell_list = ['sell', 'بفروش', 'فروش', 'selling',]
+    sell_list = ['sell', 'بفروش', 'فروش', 'selling', "𝐒𝐞𝐥𝐥"]
 
     words = sentence.split()
 
@@ -242,6 +253,7 @@ def GetSymbol(sentence):
             word == '#XAUUSD' or
             word == 'انس' or
             word == 'گلد' or
+            word == '𝐗𝐀𝐔𝐔𝐒𝐃' or
             word == 'XAU/USD' or
                 word == 'اونس'):
             return 'XAUUSD'

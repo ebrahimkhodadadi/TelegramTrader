@@ -848,7 +848,7 @@ class MetaTrader:
                 positions = Database.Migrations.get_signal_positions_by_positionId(position_id)
                 signal = Database.Migrations.get_signal_by_positionId(position_id)
 
-                if (len(positions) == 0):
+                if (len(positions) <= 1):
                     continue
 
                 if (signal['second_price'] is None or signal['second_price'] == 0):
