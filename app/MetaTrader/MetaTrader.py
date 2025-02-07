@@ -705,6 +705,9 @@ class MetaTrader:
             orders = mt.get_open_positions()
             for order in (o for o in orders if o.ticket in positions):
                 mt.close_position(order.ticket)
+            orders = mt.get_pending_orders()
+            for order in (o for o in orders if o.ticket in positions):
+                mt.close_position(order.ticket)
 
 # ==============================
 # MONITORING
