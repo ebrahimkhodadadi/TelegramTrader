@@ -685,7 +685,7 @@ class MetaTrader:
                 mt.OpenPosition(actionType, lot, symbol.upper(
                 ), sl, tp, secondPrice, mtAccount.expirePendinOrderInMinutes, comment, signal_id)
 
-    def CloseLastSignalPositions(message_chatid):
+    def RiskFreePositions(message_chatid):
         cfg = Configure.GetSettings()
         meta_trader_accounts = [MetaTrader.MetaTraderAccount(
             acc) for acc in cfg["MetaTrader"]]
@@ -702,12 +702,14 @@ class MetaTrader:
                 continue
 
             positions = Database.Migrations.get_last_signal_positions_by_chatid(message_chatid)
+            
             orders = mt.get_open_positions()
             for order in (o for o in orders if o.ticket in positions):
-                mt.close_position(order.ticket)
-            orders = mt.get_pending_orders()
-            for order in (o for o in orders if o.ticket in positions):
-                mt.close_position(order.ticket)
+                mt.close_half_position(order.ticket)
+                
+                signal = Database.Migrations.get_signal_by_positionId(message_chatid)
+                mt.update_stop_loss(order.ticket, signal['open_price'])
+            
 
 # ==============================
 # MONITORING

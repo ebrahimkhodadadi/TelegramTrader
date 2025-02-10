@@ -76,7 +76,7 @@ def get_last_signal_positions_by_chatid(chat_id):
         ORDER BY p.signal_id DESC, p.id DESC
         LIMIT 2
     """
-    positions = position_repo.execute_query(query, (chat_id,))  # Add a comma to make it a tuple
+    positions = position_repo.execute_query(query, (chat_id,)) 
     return [x[0] for x in positions]
 
 
