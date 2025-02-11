@@ -238,6 +238,12 @@ def read_symbol_list():
             "An error occurred while reading the symbol list JSON file")
         return []
 
+def find_similar_word(word, symbol_list):
+    word_upper = word.upper()
+    for symbol in symbol_list:
+        if word_upper in symbol:
+            return symbol  # Return the first match
+    return None  # Return None if no match is found
 
 def GetSymbol(sentence):
     symbol_list = MetaTrader.GetSymbols()
@@ -245,7 +251,7 @@ def GetSymbol(sentence):
     for word in words:
         word = word.replace("/", "").replace("-", "")
         if word.upper() in symbol_list:
-            return word.upper()
+            return find_similar_word(word, symbol_list)
         if (word == 'طلا' or
             word == 'gold' or
             word == 'Gold' or
@@ -256,7 +262,7 @@ def GetSymbol(sentence):
             word == '𝐗𝐀𝐔𝐔𝐒𝐃' or
             word == 'XAU/USD' or
                 word == 'اونس'):
-            return 'XAUUSD'
+            return find_similar_word('XAUUSD', symbol_list)
         if word.upper() == "US30":
             return "DJIUSD"
         if word.upper() == "NASDAQ":
