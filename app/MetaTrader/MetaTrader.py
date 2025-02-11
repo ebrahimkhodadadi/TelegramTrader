@@ -705,10 +705,13 @@ class MetaTrader:
             
             orders = mt.get_open_positions()
             for order in (o for o in orders if o.ticket in positions):
-                mt.close_half_position(order.ticket)
+                signal = Database.Migrations.get_signal_by_positionId(order.ticket)
+                if signal is None:
+                    logger.error(f"Can't find signal {order.ticket}")
+                result = mt.update_stop_loss(order.ticket, signal["open_price"])
                 
-                signal = Database.Migrations.get_signal_by_positionId(message_chatid)
-                mt.update_stop_loss(order.ticket, signal['open_price'])
+                if result:
+                    mt.close_half_position(order.ticket)
             
 
 # ==============================
