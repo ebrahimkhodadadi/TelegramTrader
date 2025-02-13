@@ -18,13 +18,15 @@
   "MetaTrader": [
     {
       "TakeProfit": 0,
+      //"SaveProfits": [20, 30 ,20, 30],
       "server": "CapitalxtendLLC-MU",
       "username": 101694,
       "password": "rnj6A!F8A",
       "lot": "2%",
       "expirePendinOrderInMinutes": 30,
       "HighRisk": false,
-      "AccountSize": 1000,
+      //"AccountSize": 1000,
+      //"CloserPrice": 0.5,
       "path": "C:/Users/Trade4/Desktop/TelegramMetaTrader/terminal64.exe"
     }
   ]
