@@ -438,7 +438,27 @@ class MetaTrader:
 
         return lot_size
 
-    def OpenPosition(self, type, lot, symbol, sl, tp, price, expirePendinOrderInMinutes, comment, signal_id):
+    def ConvertCloserPrice(self, symbol, actionType, price, closerPrice, isCurrentPrice = None, isTp = None):
+        if closerPrice is None or closerPrice == 0:
+            return float(price)
+        if 'xauusd' not in symbol.lower():
+            return float(price)
+        
+        if isTp:
+            if actionType in [mt5.ORDER_TYPE_BUY, mt5.ORDER_TYPE_BUY_STOP, mt5.ORDER_TYPE_BUY_LIMIT]:
+                return float(price - closerPrice)
+            elif actionType in [mt5.ORDER_TYPE_SELL, mt5.ORDER_TYPE_SELL_LIMIT, mt5.ORDER_TYPE_SELL_STOP]:
+                return float(price + closerPrice)
+        if isCurrentPrice:
+            if actionType == mt5.ORDER_TYPE_BUY_LIMIT or actionType == mt5.ORDER_TYPE_SELL_STOP:
+                return float(price + closerPrice)
+            elif actionType == mt5.ORDER_TYPE_BUY_STOP or actionType == mt5.ORDER_TYPE_SELL_LIMIT:
+                return float(price - closerPrice)
+        
+        return float(price)
+            
+        
+    def OpenPosition(self, type, lot, symbol, sl, tp, price, expirePendinOrderInMinutes, comment, signal_id, closerPrice):
         try:
             # Get filling mode
             # filling_mode = mt5.symbol_info(symbol).filling_mode - 1
@@ -459,9 +479,15 @@ class MetaTrader:
                 action = mt5.TRADE_ACTION_DEAL
 
             lot = float(lot)
-            openPrice = float(price)
             stopLoss = float(sl)
-            takeProfit = float(tp)
+            openPrice = self.ConvertCloserPrice(symbol, type, price, closerPrice, isCurrentPrice=True)
+            takeProfit = self.ConvertCloserPrice(symbol, type, tp, closerPrice, isTp=True)
+            
+            if self.AnyPositionByData(symbol, openPrice, stopLoss, takeProfit) == True:
+                logger.info(f"position already exist: symbol={
+                            symbol}, openPrice={openPrice}, sl={stopLoss}, tp={takeProfit}")
+                return
+            
             # Open the trade
             request = {
                 "action": action,
@@ -585,6 +611,7 @@ class MetaTrader:
             self.password = account_dict.get('password')
             self.lot = account_dict.get('lot')
             self.HighRisk = account_dict.get('HighRisk')
+            self.CloserPrice = account_dict.get('CloserPrice')
             self.account_size = account_dict.get('AccountSize')
             self.expirePendinOrderInMinutes = account_dict.get(
                 'expirePendinOrderInMinutes')
@@ -664,12 +691,8 @@ class MetaTrader:
             # lot
             lot = mt.calculate_lot_size_with_prices(symbol, mtAccount.lot, openPrice, sl, mtAccount.account_size)
 
-            if mt.AnyPositionByData(symbol, openPrice, sl, tp) == True:
-                logger.info(f"position already exist: symbol={
-                            symbol}, openPrice={openPrice}, sl={sl}, tp={tp}")
-            else:
-                mt.OpenPosition(actionType, lot, symbol.upper(
-                ), sl, tp, openPrice, mtAccount.expirePendinOrderInMinutes, comment, signal_id)
+            mt.OpenPosition(actionType, lot, symbol.upper(
+            ), sl, tp, openPrice, mtAccount.expirePendinOrderInMinutes, comment, signal_id, mtAccount.CloserPrice)
 
             if secondPrice is not None and secondPrice != 0 and mtAccount.HighRisk == True:
                 # lot
@@ -677,13 +700,8 @@ class MetaTrader:
                 # validate
                 secondPrice = mt.validate(actionType, secondPrice, symbol)
 
-                if mt.AnyPositionByData(symbol, secondPrice, sl, tp) == True:
-                    logger.info(f"position already exist: symbol={
-                                symbol}, secondPrice={secondPrice}, sl={sl}, tp={tp}")
-                    continue
-
                 mt.OpenPosition(actionType, lot, symbol.upper(
-                ), sl, tp, secondPrice, mtAccount.expirePendinOrderInMinutes, comment, signal_id)
+                ), sl, tp, secondPrice, mtAccount.expirePendinOrderInMinutes, comment, signal_id, mtAccount.CloserPrice)
 
     def RiskFreePositions(message_chatid):
         cfg = Configure.GetSettings()
