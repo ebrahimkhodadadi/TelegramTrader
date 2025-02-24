@@ -23,6 +23,8 @@ position_columns = {
     "signal_id": "INTEGER NOT NULL",
     "position_id": "INTEGER NOT NULL",
     "user_id": "INTEGER NOT NULL",
+    "is_first": "Boolean NULL",
+    "is_second": "Boolean NULL",
     "FOREIGN KEY(signal_id)": "REFERENCES Signals(id) ON DELETE CASCADE"
 }
 
@@ -48,20 +50,6 @@ def get_tp_levels(ticket_id):
     """
     signal = signal_repo.execute_query(query, (ticket_id,))
     if signal and len(signal) > 0:
-        return [float(x) for x in signal[0]['tp_list'].split(',')]
-    return None
-
-
-def get_tp_levels(ticket_id):
-    """Read Take Profit values from the database"""
-    query = """
-        SELECT s.tp_list 
-        FROM positions p
-        INNER JOIN signals s ON p.signal_id = s.id
-        WHERE p.position_id = ?
-    """
-    signal = signal_repo.execute_query(query, (ticket_id,))
-    if signal and len(signal) > 0:
         return [float(x) for x in signal[0][0].split(',')]
     return None
 
@@ -73,7 +61,7 @@ def get_last_signal_positions_by_chatid(chat_id):
         FROM positions p
         INNER JOIN signals s ON p.signal_id = s.id
         WHERE s.telegram_message_chatid = ?
-        ORDER BY p.signal_id DESC, p.id DESC
+        ORDER BY p.id DESC
         LIMIT 2
     """
     positions = position_repo.execute_query(query, (chat_id,)) 
@@ -161,9 +149,39 @@ def get_signal_positions_by_positionId(ticket_id):
             "id": row[0],
             "signal_id": row[1],
             "position_id": row[2],
-            "user_id": row[3]
+            "user_id": row[3],
+            "is_first": row[4],
+            "is_second": row[5]
         }
         for row in results
     ]
 
     return position_columns  # Returns a list of dictionaries
+
+def get_position_by_signal_id(signal_id, first=False, second=False):
+    query = """
+        SELECT * 
+        FROM positions 
+        WHERE signal_id = ? and (is_first = ? and is_second = ?)
+        ORDER BY id DESC
+        LIMIT 1;
+    """
+    results = signal_repo.execute_query(query, (signal_id, first, second,))
+    
+    if not results:  # More Pythonic way to check for empty results
+        return []
+
+    # Map all rows to a list of dictionaries
+    position_columns = [
+        {
+            "id": row[0],
+            "signal_id": row[1],
+            "position_id": row[2],
+            "user_id": row[3],
+            "is_first": row[4],
+            "is_second": row[5]
+        }
+        for row in results
+    ]
+
+    return position_columns[0]  # Returns a list of dictionaries

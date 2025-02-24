@@ -106,13 +106,20 @@ class MetaTrader:
         if ticket_id != None:
             orders = mt5.orders_get(ticket=ticket_id)
             if (len(orders) == 0):
-                logger.error(f"Can't find order {ticket_id}")
+                # logger.error(f"Can't find order {ticket_id}")
                 return None
             return orders[0]
         else:
             orders = mt5.orders_get()
 
         return list(orders) if orders else []
+    
+    def get_position_or_order(self, ticket_id):
+        position = self.get_open_positions(ticket_id=ticket_id)
+        if position != None:
+            return position
+        return self.get_pending_orders(ticket_id=ticket_id)
+        
 
     def close_half_position(self, ticket):
         """Close half of the position volume"""
@@ -156,6 +163,7 @@ class MetaTrader:
         if (position is None):
             return
 
+        new_lot_size = None
         if self.SaveProfits is not None and len(self.SaveProfits) != 0 and self.SaveProfits[index]:
             new_lot_size = round(position.volume * (self.SaveProfits[index] / 100), 2)
         
@@ -163,7 +171,7 @@ class MetaTrader:
             logger.critical("There is no strategy to save profit of volume.")
             return
             
-        logger.warning(f"new lot size to save profit of {ticket} is {new_lot_size}")
+        logger.warning(f"new lot size to save {self.SaveProfits[index]}% profit of {ticket} is {new_lot_size}")
 
         if new_lot_size >= 0.01:
             request = {
@@ -302,17 +310,42 @@ class MetaTrader:
 
         logger.success(f"Closed position/order {ticket} successfully.")
         return True
+    
+    def determine_order_type_and_price(self, symbol, open_order_price, order_type_signal, distance_threshold=None):
+        current_price = self.get_current_price(symbol, order_type_signal)
+        
+        if(symbol.lower() == 'xauusd' and distance_threshold != None and distance_threshold != 0):
+            min_distance = distance_threshold   # Minimum distance in pips for market order
+            max_distance = distance_threshold  # Maximum distance in pips for market order
+            distance = abs(open_order_price - current_price)
 
-    def determine_order_type_and_price(self, current_price, open_order_price, order_type_signal):
+            if order_type_signal == mt5.ORDER_TYPE_BUY:
+                if min_distance <= distance <= max_distance:
+                    return mt5.ORDER_TYPE_BUY
+                elif open_order_price > current_price:
+                    return mt5.ORDER_TYPE_BUY_STOP
+                else:
+                    return mt5.ORDER_TYPE_BUY_LIMIT
+
+            elif order_type_signal == mt5.ORDER_TYPE_SELL:
+                if min_distance <= distance <= max_distance:
+                    return mt5.ORDER_TYPE_SELL
+                elif open_order_price < current_price:
+                    return mt5.ORDER_TYPE_SELL_STOP
+                else:
+                    return mt5.ORDER_TYPE_SELL_LIMIT
+
+        # Default behavior for other symbols (original logic)
         if order_type_signal == mt5.ORDER_TYPE_BUY:
-            if (open_order_price > current_price):
+            if open_order_price > current_price:
                 return mt5.ORDER_TYPE_BUY_STOP
-            elif (open_order_price < current_price):
+            elif open_order_price < current_price:
                 return mt5.ORDER_TYPE_BUY_LIMIT
+
         elif order_type_signal == mt5.ORDER_TYPE_SELL:
-            if (open_order_price > current_price):
+            if open_order_price > current_price:
                 return mt5.ORDER_TYPE_SELL_LIMIT
-            elif (open_order_price < current_price):
+            elif open_order_price < current_price:
                 return mt5.ORDER_TYPE_SELL_STOP
 
         return order_type_signal
@@ -484,6 +517,8 @@ class MetaTrader:
             return float(price)
         if 'xauusd' not in symbol.lower():
             return float(price)
+        if not price.is_integer():
+            return float(price)
 
         if isTp:
             if actionType in [mt5.ORDER_TYPE_BUY, mt5.ORDER_TYPE_BUY_STOP, mt5.ORDER_TYPE_BUY_LIMIT]:
@@ -498,21 +533,20 @@ class MetaTrader:
 
         return float(price)
 
-    def OpenPosition(self, type, lot, symbol, sl, tp, price, expirePendinOrderInMinutes, comment, signal_id, closerPrice):
+    def OpenPosition(self, type, lot, symbol, sl, tp, price, expirePendinOrderInMinutes, comment, signal_id, closerPrice, isFirst=False, isSecond=False):
         try:
             # Get filling mode
             # filling_mode = mt5.symbol_info(symbol).filling_mode - 1
 
             # Take ask price
-            # ask_price = mt5.symbol_info_tick(symbol).ask
+            ask_price = mt5.symbol_info_tick(symbol).ask
             # Take bid price
             bid_price = mt5.symbol_info_tick(symbol).bid
             # Take the point of the asset
             point = mt5.symbol_info(symbol).point
             deviation = 20  # mt5.getSlippage(symbol)
 
-            type = self.determine_order_type_and_price(
-                bid_price, price, type)
+            type = self.determine_order_type_and_price(symbol, price, type, closerPrice)
 
             action = mt5.TRADE_ACTION_PENDING
             if type == mt5.ORDER_TYPE_BUY or type == mt5.ORDER_TYPE_SELL:
@@ -524,6 +558,9 @@ class MetaTrader:
                 symbol, type, price, closerPrice, isCurrentPrice=True)
             takeProfit = self.ConvertCloserPrice(
                 symbol, type, tp, closerPrice, isTp=True)
+            
+            if type != self.determine_order_type_and_price(symbol, openPrice, type, closerPrice):
+                openPrice = float(price)
 
             if self.AnyPositionByData(symbol, openPrice, stopLoss, takeProfit) == True:
                 logger.info(f"position already exist: symbol={
@@ -610,7 +647,9 @@ class MetaTrader:
                 position_data = {
                     "signal_id": signal_id,
                     "user_id": self.user,
-                    "position_id": result.order
+                    "position_id": result.order,
+                    "is_first": isFirst,
+                    "is_second": isSecond
                 }
                 Migrations.position_repo.insert(position_data)
 
@@ -738,7 +777,7 @@ class MetaTrader:
                 symbol, mtAccount.lot, openPrice, sl, mtAccount.account_size)
 
             mt.OpenPosition(actionType, lot, symbol.upper(
-            ), sl, tp, openPrice, mtAccount.expirePendinOrderInMinutes, comment, signal_id, mtAccount.CloserPrice)
+            ), sl, tp, openPrice, mtAccount.expirePendinOrderInMinutes, comment, signal_id, mtAccount.CloserPrice, isFirst=True)
 
             if secondPrice is not None and secondPrice != 0 and mtAccount.HighRisk == True:
                 # lot
@@ -748,7 +787,7 @@ class MetaTrader:
                 secondPrice = mt.validate(actionType, secondPrice, symbol)
 
                 mt.OpenPosition(actionType, lot, symbol.upper(
-                ), sl, tp, secondPrice, mtAccount.expirePendinOrderInMinutes, comment, signal_id, mtAccount.CloserPrice)
+                ), sl, tp, secondPrice, mtAccount.expirePendinOrderInMinutes, comment, signal_id, mtAccount.CloserPrice, isSecond=True)
 
     def RiskFreePositions(message_chatid):
         cfg = Configure.GetSettings()
@@ -766,17 +805,22 @@ class MetaTrader:
             if mt.Login() == False:
                 continue
 
-            positions = Database.Migrations.get_last_signal_positions_by_chatid(
-                message_chatid)
+            positions = Database.Migrations.get_last_signal_positions_by_chatid(message_chatid)
 
             orders = mt.get_open_positions()
             for order in (o for o in orders if o.ticket in positions):
-                signal = Database.Migrations.get_signal_by_positionId(
-                    order.ticket)
+                signal = Database.Migrations.get_signal_by_positionId(order.ticket)
                 if signal is None:
                     logger.error(f"Can't find signal {order.ticket}")
-                result = mt.update_stop_loss(
-                    order.ticket, signal["open_price"])
+                    
+                entry_price = signal["open_price"]
+                signal_position = Database.Migrations.get_position_by_signal_id(signal["id"], first=True)
+                if signal_position is not None:
+                    pos = mt.get_position_or_order(ticket_id=signal_position["position_id"])
+                    if pos is not None:
+                        entry_price = pos.price_open
+                
+                result = mt.update_stop_loss(order.ticket, entry_price)
 
                 if result:
                     mt.close_half_position(order.ticket)
@@ -849,10 +893,18 @@ class MetaTrader:
             if signal is None:
                 continue
 
+            # get entry price
             if signal["second_price"] is not None:
+                signal_position = Database.Migrations.get_position_by_signal_id(signal["id"], first=True)
                 entry_price = signal["second_price"]
             else:
+                signal_position = Database.Migrations.get_position_by_signal_id(signal["id"], second=False)
                 entry_price = signal["open_price"]
+            if signal_position is not None:
+                pos = self.get_position_or_order(ticket_id=signal_position["position_id"])
+                if pos is not None:
+                    entry_price = pos.price_open
+            
             ticket = position.ticket
             lots = position.volume
             stop_loss = position.sl
