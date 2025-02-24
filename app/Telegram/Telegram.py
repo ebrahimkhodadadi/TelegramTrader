@@ -72,11 +72,11 @@ class Telegram:
         cfg = Configure.GetSettings()
         whiteList = cfg.Telegram.channels.whiteList
         if whiteList is not None and whiteList:
-            if (username is None or username.lower() not in {u.lower() for u in whiteList}) and (str(chat_id) not in whiteList and chat_id not in whiteList):
+            if (username is None or username.lower() not in {str(u).lower() for u in whiteList}) and (str(chat_id) not in whiteList and chat_id not in whiteList):
                 return
         blackList = cfg.Telegram.channels.blackList
         if blackList is not None and blackList:
-            if (username is None or username.lower() in {u.lower() for u in blackList}) or (str(chat_id) in blackList or chat_id in blackList):
+            if (username is None or username.lower() in {str(u).lower() for u in blackList}) or (str(chat_id) in blackList or chat_id in blackList):
                 return
 
         text = event.raw_text.encode('utf-8', errors='ignore').decode('utf-8')

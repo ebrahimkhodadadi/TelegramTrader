@@ -311,7 +311,10 @@ class MetaTrader:
         logger.success(f"Closed position/order {ticket} successfully.")
         return True
     
-    def determine_order_type_and_price(self, symbol, open_order_price, order_type_signal, distance_threshold=None):
+    def determine_order_type_and_price(self, symbol, open_order_price, order_type_signal, distance_threshold=None, force=False):
+        if force:
+            return order_type_signal
+        
         current_price = self.get_current_price(symbol, order_type_signal)
         
         if(symbol.lower() == 'xauusd' and distance_threshold != None and distance_threshold != 0):
@@ -533,7 +536,7 @@ class MetaTrader:
 
         return float(price)
 
-    def OpenPosition(self, type, lot, symbol, sl, tp, price, expirePendinOrderInMinutes, comment, signal_id, closerPrice, isFirst=False, isSecond=False):
+    def OpenPosition(self, type, lot, symbol, sl, tp, price, expirePendinOrderInMinutes, comment, signal_id, closerPrice, isFirst=False, isSecond=False, force=False):
         try:
             # Get filling mode
             # filling_mode = mt5.symbol_info(symbol).filling_mode - 1
@@ -546,7 +549,7 @@ class MetaTrader:
             point = mt5.symbol_info(symbol).point
             deviation = 20  # mt5.getSlippage(symbol)
 
-            type = self.determine_order_type_and_price(symbol, price, type, closerPrice)
+            type = self.determine_order_type_and_price(symbol, price, type, force=force)
 
             action = mt5.TRADE_ACTION_PENDING
             if type == mt5.ORDER_TYPE_BUY or type == mt5.ORDER_TYPE_SELL:
@@ -559,7 +562,7 @@ class MetaTrader:
             takeProfit = self.ConvertCloserPrice(
                 symbol, type, tp, closerPrice, isTp=True)
             
-            if type != self.determine_order_type_and_price(symbol, openPrice, type, closerPrice):
+            if type != self.determine_order_type_and_price(symbol, openPrice, type, force=force):
                 openPrice = float(price)
 
             if self.AnyPositionByData(symbol, openPrice, stopLoss, takeProfit) == True:
@@ -606,8 +609,15 @@ class MetaTrader:
                 # check the execution result
                 # logger.info("1. order_send(): by {} {} lots at {} with deviation={} points".format(symbol, lot, price, deviation))
                 if result.retcode != mt5.TRADE_RETCODE_DONE:
-                    logger.error(
-                        "2. order_send failed, retcode={}".format(result.retcode))
+                    logger.error("2. order_send failed, retcode={}".format(result.retcode))
+                    logger.error("Current price: {}".format(self.get_current_price(symbol)))
+                if (result.retcode == 10015 and force == False): # invalid price
+                    logger.warning("Try force position")
+                    if type in [mt5.ORDER_TYPE_BUY, mt5.ORDER_TYPE_BUY_STOP, mt5.ORDER_TYPE_BUY_LIMIT]:
+                        type = mt5.ORDER_TYPE_BUY
+                    elif type in [mt5.ORDER_TYPE_SELL, mt5.ORDER_TYPE_SELL_LIMIT, mt5.ORDER_TYPE_SELL_STOP]:
+                        type = mt5.ORDER_TYPE_SELL
+                    return self.OpenPosition(type, lot, symbol, sl, tp, price, expirePendinOrderInMinutes, comment, signal_id, closerPrice, isFirst, isSecond, force=True)
                 if result.retcode == 10027:
                     logger.critical("Enable Algo Trading in MetaTrader.")
                 # if result.retcode == 10016:
@@ -632,11 +642,11 @@ class MetaTrader:
                                     tradereq_filed, traderequest_dict[tradereq_filed]))
 
                     # print("shutdown() and quit")
-                    mt5.shutdown()
+                    # mt5.shutdown()
                     # quit()
             else:
                 logger.error("1. order_send failed. Exiting. ")
-                mt5.shutdown()
+                # mt5.shutdown()
                 # quit()
             # logger.info(f"result: {result}")
             logger.info(f"open position id: {result.order} for {comment}")
