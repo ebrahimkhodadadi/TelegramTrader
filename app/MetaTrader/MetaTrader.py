@@ -905,11 +905,13 @@ class MetaTrader:
 
             # get entry price
             if signal["second_price"] is not None:
-                signal_position = Database.Migrations.get_position_by_signal_id(signal["id"], first=True)
-                entry_price = signal["second_price"]
+                signal_position = Database.Migrations.get_position_by_signal_id(signal["id"], second=True)
+                if signal_position and signal_position is not None:
+                    entry_price = signal["second_price"]
             else:
-                signal_position = Database.Migrations.get_position_by_signal_id(signal["id"], second=False)
-                entry_price = signal["open_price"]
+                signal_position = Database.Migrations.get_position_by_signal_id(signal["id"], first=True)
+                if signal_position and signal_position is not None:
+                    entry_price = signal["open_price"]
             if signal_position is not None:
                 pos = self.get_position_or_order(ticket_id=signal_position["position_id"])
                 if pos is not None:

@@ -169,7 +169,7 @@ def get_position_by_signal_id(signal_id, first=False, second=False):
     results = signal_repo.execute_query(query, (signal_id, first, second,))
     
     if not results:  # More Pythonic way to check for empty results
-        return []
+        return None
 
     # Map all rows to a list of dictionaries
     position_columns = [
