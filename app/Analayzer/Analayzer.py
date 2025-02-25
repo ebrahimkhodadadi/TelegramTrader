@@ -30,6 +30,7 @@ def clean_text(text):
     """Normalize text by removing only special Unicode formatting, keeping Persian and new lines."""
     text = unicodedata.normalize("NFKC", text)  # Normalize bold/italic Unicode
     text = re.sub(r'[^\S\r\n]+', ' ', text)  # Remove excessive spaces but keep new lines
+    text = re.sub(r'[☑️❌]', '', text)  # Remove ☑️ and ❌ symbols
     return text.strip()
 
 def GetFirstPrice(message):
