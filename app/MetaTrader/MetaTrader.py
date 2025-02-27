@@ -8,6 +8,7 @@ import MetaTrader5 as mt5
 import time
 import asyncio
 from datetime import datetime, timedelta
+import pytz
 
 # https://www.mql5.com/en/docs/constants/errorswarnings/enum_trade_return_codes
 
@@ -26,18 +27,45 @@ class MetaTrader:
             if mt5.terminal_info() is not None:
                 return True
 
-            logger.info(f"try to login to {self.server} with {self.user}")
+            print(f"try to login to {self.server} with {self.user}")
             # establish connection to the MetaTrader 5 terminal
             if not mt5.initialize(path=self.path, login=self.user, server=self.server, password=self.password):
-                logger.error("MetaTrader Login failed, error code =",
+                print("MetaTrader Login failed, error code =",
                              mt5.last_error())
                 return False
-            logger.success(f"login was successful for {self.user}")
+            print(f"login was successful for {self.user}")
             return True
         except Exception as e:
-            logger.error(f"Unexpected error: {e}")
+            print(f"Unexpected error: {e}")
             return False
 
+    def get_mt5_time():
+        cfg = Configure.GetSettings()
+        meta_trader_accounts = [MetaTrader.MetaTraderAccount(
+            acc) for acc in cfg["MetaTrader"]]
+
+        mtAccount = meta_trader_accounts[0]
+        
+        mt = MetaTrader(
+            path=mtAccount.path,
+            server=mtAccount.server,
+            user=mtAccount.username,
+            password=mtAccount.password
+        )
+
+        if mt.Login() == False:
+            return None
+        
+        symbol = "XAUUSD"
+        tick = mt5.symbol_info_tick(symbol)
+        if tick is None:
+            print(f"symbol_info_tick() failed for {symbol}")
+            return None
+    
+        server_time = tick.time
+        server_time_utc = datetime.utcfromtimestamp(server_time).replace(tzinfo=pytz.utc)
+        return server_time_utc
+    
     def CheckSymbol(self, symbol):
         logger.info("Check symbol " + symbol)
         symbol_info = mt5.symbol_info(symbol.upper())

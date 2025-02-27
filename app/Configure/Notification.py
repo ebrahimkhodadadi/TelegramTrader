@@ -12,4 +12,6 @@ def ConfigNotification(token, chatId):
     telegram = get_notifier('telegram')
     telegram.notify(message='Bot Started! \n' + Helper.get_jalali_datetime(), **params)
     handler = NotificationHandler("telegram", defaults=params)
-    logger.add(handler)
+    logger.add(handler, format="sys: `{time:YYYY-MM-DD HH:mm:ss}` | mt: `{extra[mt5_time]}`\n{message}")
+
+
