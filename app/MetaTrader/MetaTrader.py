@@ -419,7 +419,7 @@ class MetaTrader:
 
         return float(price)  # اگر TP از ابتدا معتبر بود، همان را برگردان
 
-    def validate_tp_list(self, action, tp_list, symbol, currentPrice=None):
+    def validate_tp_list(self, action, tp_list, symbol, currentPrice=None, closerPrice=None):
         if symbol != "XAUUSD":
             return tp_list
 
@@ -460,6 +460,7 @@ class MetaTrader:
                     newPrice = float(f"{base}{price}")
 
             if newPrice is not None and newPrice != 0:
+                newPrice = self.ConvertCloserPrice(symbol, action, newPrice, closerPrice, isTp=True)
                 validated_tp_levels.append(newPrice)
                 last_price = int(newPrice)  # ذخیره آخرین مقدار معتبر
 
@@ -775,7 +776,7 @@ class MetaTrader:
             if tp_list is None:
                 return
             validated_tp_levels = mt.validate_tp_list(
-                actionType, tp_list, symbol, openPrice)
+                actionType, tp_list, symbol, openPrice, mtAccount.CloserPrice)
 
             # save to db
             # Check if a similar record already exists in the database
