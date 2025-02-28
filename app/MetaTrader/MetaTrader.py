@@ -22,6 +22,7 @@ class MetaTrader:
         self.SaveProfits = saveProfits
         self.magic = 2025
 
+    # Refactor: bring whole login here for just one account
     def Login(self) -> bool:
         try:
             if mt5.terminal_info() is not None:
@@ -57,6 +58,11 @@ class MetaTrader:
             return None
         
         symbol = "XAUUSD"
+        symbol_list = MetaTrader.GetSymbols()
+        for symbol_mt in symbol_list:
+            if symbol in symbol_mt:
+                symbol = symbol_mt 
+        
         tick = mt5.symbol_info_tick(symbol)
         if tick is None:
             print(f"symbol_info_tick() failed for {symbol}")
