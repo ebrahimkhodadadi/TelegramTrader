@@ -393,10 +393,12 @@ class MetaTrader:
 
         if currentPrice is None:
             currentPrice = self.get_current_price(symbol, action)
-        currentPrice = int(currentPrice)  # تبدیل قیمت به عدد صحیح
-        price = int(price)  # تبدیل مقدار ورودی به عدد صحیح
-        priceStr = str(price)
+
         if len(priceStr) < len(str(currentPrice)):
+            currentPrice = int(currentPrice)  # تبدیل قیمت به عدد صحیح
+            price = int(price)  # تبدیل مقدار ورودی به عدد صحیح
+            priceStr = str(price)
+            
             # قسمت ابتدایی قیمت فعلی
             base = int(str(currentPrice)[:-len(priceStr)])
             newPrice = float(f"{base}{price}")
