@@ -22,7 +22,7 @@ def parse_message(message):
         stopLoss = GetStopLoss(message)
         
         symbol = GetSymbol(message)
-        if symbol is None:
+        if symbol is None and firstPrice is not None:
             if(len(str(int(firstPrice))) == 4):
                 symbol = GetSymbol('XAUUSD')
             if(len(str(int(firstPrice))) == 1):
