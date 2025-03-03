@@ -394,7 +394,7 @@ class MetaTrader:
         if currentPrice is None:
             currentPrice = self.get_current_price(symbol, action)
 
-        priceStr = str(price)
+        priceStr = str(int(price))
         currentPrice = int(currentPrice)  # تبدیل قیمت به عدد صحیح
         if len(priceStr) < len(str(currentPrice)):
             price = int(price)  # تبدیل مقدار ورودی به عدد صحیح
