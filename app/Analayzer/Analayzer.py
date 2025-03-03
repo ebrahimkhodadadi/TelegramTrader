@@ -19,16 +19,9 @@ def parse_message(message):
         firstPrice = GetFirstPrice(message)
         secondPrice = GetSecondPrice(message)
         takeProfits = GetTakeProfits(message)
-        stopLoss = GetStopLoss(message)
-        
+        stopLoss = GetStopLoss(message)        
         symbol = GetSymbol(message)
-        if symbol is None and firstPrice is not None:
-            if(len(str(int(firstPrice))) == 4):
-                symbol = GetSymbol('XAUUSD')
-            if(len(str(int(firstPrice))) == 1):
-                symbol = GetSymbol('EURUSD')
-            
-        
+
         return actionType, symbol, firstPrice, secondPrice, takeProfits, stopLoss
     except Exception as e:
         logger.error("Error while deserilize message: \n" + e)
@@ -279,4 +272,4 @@ def GetSymbol(sentence):
         if word.upper() == "NASDAQ":
             return "NDAQ"
 
-    return None
+    return find_similar_word('XAUUSD', symbol_list)
