@@ -594,8 +594,7 @@ class MetaTrader:
             stopLoss = float(sl)
             openPrice = self.ConvertCloserPrice(
                 symbol, type, price, closerPrice, isCurrentPrice=True)
-            takeProfit = self.ConvertCloserPrice(
-                symbol, type, tp, closerPrice, isTp=True)
+            takeProfit = float(tp)
             
             if type != self.determine_order_type_and_price(symbol, openPrice, type, force=force):
                 openPrice = float(price)
