@@ -69,6 +69,8 @@ def GetSecondPrice(message):
             match = re.search(r'\b\d+\b\s*و\s*(\d+)\s*خرید', message)
         if not match:
             match = re.search(r'\b\d+\.?\d*/(\d+\.?\d*)', message)
+        if not match:
+            match = re.search(r'=\s*(\d+\.?\d*)', message)
         if match:
             second_number = float(match.group(1) or match.group(2))
         else:
@@ -212,7 +214,7 @@ def GetStopLoss(message):
 
 def get_main_word_actiontype(sentence):
     buy_list = ['buy', 'بخر', 'خرید']
-    sell_list = ['sell', 'بفروش', 'فروش', 'selling', "𝐒𝐞𝐥𝐥"]
+    sell_list = ['sell', 'selll', 'بفروش', 'فروش', 'selling', "𝐒𝐞𝐥𝐥"]
 
     words = sentence.split()
 
