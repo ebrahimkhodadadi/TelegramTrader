@@ -41,7 +41,7 @@ def HandleOpenPosition(messageType, text, comment, message_username, message_id,
 
 
 def HandleRiskFree(chat_id, text):
-    if 'ریسک فری' in text or 'risk free' in text:
+    if 'فری' in text or 'risk free' in text:
         MetaTrader.RiskFreePositions(chat_id)
 
 

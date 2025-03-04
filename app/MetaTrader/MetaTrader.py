@@ -557,8 +557,6 @@ class MetaTrader:
             return float(price)
         if 'xauusd' not in symbol.lower():
             return float(price)
-        if not price.is_integer():
-            return float(price)
 
         if isTp:
             if actionType in [mt5.ORDER_TYPE_BUY, mt5.ORDER_TYPE_BUY_STOP, mt5.ORDER_TYPE_BUY_LIMIT]:
