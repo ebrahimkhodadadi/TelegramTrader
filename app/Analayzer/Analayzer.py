@@ -270,10 +270,12 @@ def GetSymbol(sentence):
                 word == 'اونس'):
             return find_similar_word('XAUUSD', symbol_list)
         if word.upper() == "US30":
-            return "DJIUSD"      
+            return find_similar_word("DJIUSD"  , symbol_list)    
         if word.upper() == "یورو":
-            return "EURUSD"
+            return find_similar_word("EURUSD", symbol_list)
         if word.upper() == "NASDAQ":
-            return "NDAQ"
+            return find_similar_word("NDAQ", symbol_list)    
+        if word.upper() == "OIL":
+            return find_similar_word("USO", symbol_list)
 
     return find_similar_word('XAUUSD', symbol_list)
