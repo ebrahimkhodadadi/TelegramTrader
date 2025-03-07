@@ -219,9 +219,9 @@ def get_main_word_actiontype(sentence):
     words = sentence.split()
 
     for word in words:
-        if word.lower() in buy_list:
+        if word.lower() in buy_list or re.search(r"buy", word, re.IGNORECASE):
             return TradeType.Buy
-        elif word.lower() in sell_list:
+        elif word.lower() in sell_list or re.search(r"sell", word, re.IGNORECASE):
             return TradeType.Sell
 
     return None
