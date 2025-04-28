@@ -56,6 +56,8 @@ def GetSecondPrice(message):
         if not match:
             match = re.search(r'@\d+\.?\d*\s*-\s*(\d+\.?\d*)', message)
         if not match:
+            match = re.search(r'\b\d+\.?\d*__+(\d+\.?\d*)', message)     
+        if not match:
             match = re.search(r'@\s*\d+\.?\d*\s*-\s*(\d+\.?\d*)', message)
         if not match:
             match = re.search(r'@\s*\d+\.?\d*\s*-\s*(\d+\.?\d*)|:\s*\d+\.?\d*\s*-\s*(\d+\.?\d*)', message)
@@ -90,7 +92,7 @@ def GetTakeProfits(message):
             if not tp_match:
                 tp_match = re.findall(
                     r'tp\s*:\s*(\d+\.?\d*)', sentence, re.IGNORECASE)
-            tp_matches = re.findall(r'tp\d*\s*[.:]?\s*(\d+\.?\d*)', sentence, re.IGNORECASE)
+            tp_matches = re.findall(r'tp\d*\s*[@:.\-]?\s*(\d+\.\d+|\d+)', sentence, re.IGNORECASE)
             if tp_matches:
                 tp_numbers.extend([float(tp) for tp in tp_matches])
             if not tp_match:
