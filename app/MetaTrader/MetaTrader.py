@@ -14,7 +14,7 @@ import pytz
 
 
 class MetaTrader:
-    def __init__(self, path, server, user, password, saveProfits = None):
+    def __init__(self, path, server, user, password, saveProfits=None):
         self.path = path
         self.server = server
         self.user = user
@@ -32,7 +32,7 @@ class MetaTrader:
             # establish connection to the MetaTrader 5 terminal
             if not mt5.initialize(path=self.path, login=self.user, server=self.server, password=self.password):
                 print("MetaTrader Login failed, error code =",
-                             mt5.last_error())
+                      mt5.last_error())
                 return False
             print(f"login was successful for {self.user}")
             return True
@@ -40,13 +40,21 @@ class MetaTrader:
             print(f"Unexpected error: {e}")
             return False
 
+    def validate_symbol(self, symbol):
+        symbol_list = MetaTrader.GetSymbols()
+        symbol = symbol.upper()
+        for symbol_mt in symbol_list:
+            if symbol in symbol_mt:
+                return symbol_mt
+        return symbol
+
     def get_mt5_time():
         cfg = Configure.GetSettings()
         meta_trader_accounts = [MetaTrader.MetaTraderAccount(
             acc) for acc in cfg["MetaTrader"]]
 
         mtAccount = meta_trader_accounts[0]
-        
+
         mt = MetaTrader(
             path=mtAccount.path,
             server=mtAccount.server,
@@ -56,25 +64,24 @@ class MetaTrader:
 
         if mt.Login() == False:
             return None
-        
-        symbol = "XAUUSD"
-        symbol_list = MetaTrader.GetSymbols()
-        for symbol_mt in symbol_list:
-            if symbol in symbol_mt:
-                symbol = symbol_mt 
-        
+
+        symbol = mt.validate_symbol("XAUUSD")
+
         tick = mt5.symbol_info_tick(symbol)
         if tick is None:
             print(f"symbol_info_tick() failed for {symbol}")
             return None
-    
+
         server_time = tick.time
-        server_time_utc = datetime.utcfromtimestamp(server_time).replace(tzinfo=pytz.utc)
+        server_time_utc = datetime.utcfromtimestamp(
+            server_time).replace(tzinfo=pytz.utc)
         return server_time_utc
-    
+
     def CheckSymbol(self, symbol):
         logger.info("Check symbol " + symbol)
-        symbol_info = mt5.symbol_info(symbol.upper())
+        symbol_info = mt5.symbol_info(symbol)
+        if symbol_info is None:
+            symbol_info = mt5.symbol_info(symbol.upper())
         if symbol_info is None:
             logger.critical(f"not found {symbol}, can not call order_check()")
             mt5.shutdown()
@@ -147,13 +154,12 @@ class MetaTrader:
             orders = mt5.orders_get()
 
         return list(orders) if orders else []
-    
+
     def get_position_or_order(self, ticket_id):
         position = self.get_open_positions(ticket_id=ticket_id)
         if position != None:
             return position
         return self.get_pending_orders(ticket_id=ticket_id)
-        
 
     def close_half_position(self, ticket):
         """Close half of the position volume"""
@@ -190,7 +196,7 @@ class MetaTrader:
                                position.symbol}, ticket {ticket}")
         # else:
         #     self.close_position(ticket)
-        
+
     def save_profit_position(self, ticket, index):
         """Save profit of the position volume"""
         position = self.get_open_positions(ticket)
@@ -199,13 +205,15 @@ class MetaTrader:
 
         new_lot_size = None
         if self.SaveProfits is not None and len(self.SaveProfits) != 0 and self.SaveProfits[index]:
-            new_lot_size = round(position.volume * (self.SaveProfits[index] / 100), 2)
-        
+            new_lot_size = round(
+                position.volume * (self.SaveProfits[index] / 100), 2)
+
         if new_lot_size == None or new_lot_size == 0:
             logger.critical("There is no strategy to save profit of volume.")
             return
-            
-        logger.warning(f"new lot size to save {self.SaveProfits[index]}% profit of {ticket} is {new_lot_size}")
+
+        logger.warning(
+            f"new lot size to save {self.SaveProfits[index]}% profit of {ticket} is {new_lot_size}")
 
         if new_lot_size >= 0.01:
             request = {
@@ -344,14 +352,14 @@ class MetaTrader:
 
         logger.success(f"Closed position/order {ticket} successfully.")
         return True
-    
+
     def determine_order_type_and_price(self, symbol, open_order_price, order_type_signal, distance_threshold=None, force=False):
         if force:
             return order_type_signal
-        
+
         current_price = self.get_current_price(symbol, order_type_signal)
-        
-        if(symbol.lower() == 'xauusd' and distance_threshold != None and distance_threshold != 0):
+
+        if (symbol == self.validate_symbol('xauusd') and distance_threshold != None and distance_threshold != 0):
             min_distance = distance_threshold   # Minimum distance in pips for market order
             max_distance = distance_threshold  # Maximum distance in pips for market order
             distance = abs(open_order_price - current_price)
@@ -388,7 +396,7 @@ class MetaTrader:
         return order_type_signal
 
     def validate(self, action, price, symbol, currentPrice=None, isSl=False, isSecondPrice=False):
-        if symbol != "XAUUSD":  # bug: need to fix because current price returns wrong rounded number
+        if symbol != self.validate_symbol('XAUUSD'):  # bug: need to fix because current price returns wrong rounded number
             return float(price)
 
         if currentPrice is None:
@@ -398,7 +406,7 @@ class MetaTrader:
         currentPrice = int(currentPrice)  # تبدیل قیمت به عدد صحیح
         if len(priceStr) < len(str(currentPrice)):
             price = int(price)  # تبدیل مقدار ورودی به عدد صحیح
-            
+
             # قسمت ابتدایی قیمت فعلی
             base = int(str(currentPrice)[:-len(priceStr)])
             newPrice = float(f"{base}{price}")
@@ -428,7 +436,7 @@ class MetaTrader:
         return float(price)  # اگر TP از ابتدا معتبر بود، همان را برگردان
 
     def validate_tp_list(self, action, tp_list, symbol, currentPrice=None, closerPrice=None):
-        if symbol != "XAUUSD":
+        if symbol != self.validate_symbol('XAUUSD'):
             return tp_list
 
         validated_tp_levels = []
@@ -468,7 +476,8 @@ class MetaTrader:
                     newPrice = float(f"{base}{price}")
 
             if newPrice is not None and newPrice != 0:
-                newPrice = self.ConvertCloserPrice(symbol, action, newPrice, closerPrice, isTp=True)
+                newPrice = self.ConvertCloserPrice(
+                    symbol, action, newPrice, closerPrice, isTp=True)
                 validated_tp_levels.append(newPrice)
                 last_price = int(newPrice)  # ذخیره آخرین مقدار معتبر
 
@@ -555,7 +564,7 @@ class MetaTrader:
     def ConvertCloserPrice(self, symbol, actionType, price, closerPrice, isCurrentPrice=None, isTp=None):
         if closerPrice is None or closerPrice == 0:
             return float(price)
-        if 'xauusd' not in symbol.lower():
+        if self.validate_symbol('XAUUSD') != symbol:
             return float(price)
 
         if isTp:
@@ -584,7 +593,8 @@ class MetaTrader:
             point = mt5.symbol_info(symbol).point
             deviation = 20  # mt5.getSlippage(symbol)
 
-            type = self.determine_order_type_and_price(symbol, price, type, force=force)
+            type = self.determine_order_type_and_price(
+                symbol, price, type, force=force)
 
             action = mt5.TRADE_ACTION_PENDING
             if type == mt5.ORDER_TYPE_BUY or type == mt5.ORDER_TYPE_SELL:
@@ -595,7 +605,7 @@ class MetaTrader:
             openPrice = self.ConvertCloserPrice(
                 symbol, type, price, closerPrice, isCurrentPrice=True)
             takeProfit = float(tp)
-            
+
             if type != self.determine_order_type_and_price(symbol, openPrice, type, force=force):
                 openPrice = float(price)
 
@@ -643,9 +653,11 @@ class MetaTrader:
                 # check the execution result
                 # logger.info("1. order_send(): by {} {} lots at {} with deviation={} points".format(symbol, lot, price, deviation))
                 if result.retcode != mt5.TRADE_RETCODE_DONE:
-                    logger.error("2. order_send failed, retcode={}".format(result.retcode))
-                    logger.error("Current price: {}".format(self.get_current_price(symbol)))
-                if (result.retcode == 10015 and force == False): # invalid price
+                    logger.error(
+                        "2. order_send failed, retcode={}".format(result.retcode))
+                    logger.error("Current price: {}".format(
+                        self.get_current_price(symbol)))
+                if (result.retcode == 10015 and force == False):  # invalid price
                     logger.warning("Try force position")
                     if type in [mt5.ORDER_TYPE_BUY, mt5.ORDER_TYPE_BUY_STOP, mt5.ORDER_TYPE_BUY_LIMIT]:
                         type = mt5.ORDER_TYPE_BUY
@@ -820,8 +832,8 @@ class MetaTrader:
             lot = mt.calculate_lot_size_with_prices(
                 symbol, mtAccount.lot, openPrice, sl, mtAccount.account_size)
 
-            mt.OpenPosition(actionType, lot, symbol.upper(
-            ), sl, tp, openPrice, mtAccount.expirePendinOrderInMinutes, comment, signal_id, mtAccount.CloserPrice, isFirst=True)
+            mt.OpenPosition(actionType, lot, symbol, sl, tp, openPrice, mtAccount.expirePendinOrderInMinutes,
+                            comment, signal_id, mtAccount.CloserPrice, isFirst=True)
 
             if secondPrice is not None and secondPrice != 0 and mtAccount.HighRisk == True:
                 # lot
@@ -830,8 +842,8 @@ class MetaTrader:
                 # validate
                 secondPrice = mt.validate(actionType, secondPrice, symbol)
 
-                mt.OpenPosition(actionType, lot, symbol.upper(
-                ), sl, tp, secondPrice, mtAccount.expirePendinOrderInMinutes, comment, signal_id, mtAccount.CloserPrice, isSecond=True)
+                mt.OpenPosition(actionType, lot, symbol, sl, tp, secondPrice, mtAccount.expirePendinOrderInMinutes,
+                                comment, signal_id, mtAccount.CloserPrice, isSecond=True)
 
     def RiskFreePositions(message_chatid):
         cfg = Configure.GetSettings()
@@ -849,21 +861,25 @@ class MetaTrader:
             if mt.Login() == False:
                 continue
 
-            positions = Database.Migrations.get_last_signal_positions_by_chatid(message_chatid)
+            positions = Database.Migrations.get_last_signal_positions_by_chatid(
+                message_chatid)
 
             orders = mt.get_open_positions()
             for order in (o for o in orders if o.ticket in positions):
-                signal = Database.Migrations.get_signal_by_positionId(order.ticket)
+                signal = Database.Migrations.get_signal_by_positionId(
+                    order.ticket)
                 if signal is None:
                     logger.error(f"Can't find signal {order.ticket}")
-                    
+
                 entry_price = signal["open_price"]
-                signal_position = Database.Migrations.get_position_by_signal_id(signal["id"], first=True)
+                signal_position = Database.Migrations.get_position_by_signal_id(
+                    signal["id"], first=True)
                 if signal_position is not None:
-                    pos = mt.get_position_or_order(ticket_id=signal_position["position_id"])
+                    pos = mt.get_position_or_order(
+                        ticket_id=signal_position["position_id"])
                     if pos is not None:
                         entry_price = pos.price_open
-                
+
                 result = mt.update_stop_loss(order.ticket, entry_price)
 
                 if result:
@@ -873,7 +889,6 @@ class MetaTrader:
 # ==============================
 # MONITORING
 # ==============================
-
 
     async def monitor_all_accounts():
         """Monitor all accounts concurrently"""
@@ -939,18 +954,21 @@ class MetaTrader:
 
             # get entry price
             if signal["second_price"] is not None:
-                signal_position = Database.Migrations.get_position_by_signal_id(signal["id"], second=True)
+                signal_position = Database.Migrations.get_position_by_signal_id(
+                    signal["id"], second=True)
                 if signal_position and signal_position is not None:
                     entry_price = signal["second_price"]
             else:
-                signal_position = Database.Migrations.get_position_by_signal_id(signal["id"], first=True)
+                signal_position = Database.Migrations.get_position_by_signal_id(
+                    signal["id"], first=True)
                 if signal_position and signal_position is not None:
                     entry_price = signal["open_price"]
             if signal_position is not None:
-                pos = self.get_position_or_order(ticket_id=signal_position["position_id"])
+                pos = self.get_position_or_order(
+                    ticket_id=signal_position["position_id"])
                 if pos is not None:
                     entry_price = pos.price_open
-            
+
             ticket = position.ticket
             lots = position.volume
             stop_loss = position.sl

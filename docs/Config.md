@@ -29,5 +29,9 @@
       //"CloserPrice": 0.5,
       "path": "C:/Users/Trade4/Desktop/TelegramMetaTrader/terminal64.exe"
     }
-  ]
+  ],
+  "Timer": {
+    "start": "08:00",
+    "end": "18:00"
+  }
 }

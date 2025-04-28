@@ -4,11 +4,18 @@ from loguru import logger
 from enum import Enum
 from Analayzer import *
 import Configure
+import Helper
 from MetaTrader import *
 import asyncio
 
 
 def Handle(messageType, text, comment, username, message_id, chat_id):
+    cfg = Configure.GetSettings()
+    if getattr(cfg, "Timer", None) is not None:
+        if(Helper.is_now_between(cfg.Timer.start, cfg.Timer.end) == False):
+            logger.warning(f"Trade Time is finished and it't between {cfg.Timer.start} and {cfg.Timer.end}.")
+            return
+    
     HandleOpenPosition(messageType, text, comment, username, message_id, chat_id)
     HandleRiskFree(chat_id, text)
 

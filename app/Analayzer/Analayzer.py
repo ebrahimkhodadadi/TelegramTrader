@@ -50,17 +50,15 @@ def GetFirstPrice(message):
         #              message + "' for first price: \n" + e)
         return None
 
-
 def GetSecondPrice(message):
     try:
-        match = re.search(r'@\d+\.?\d*\s*-\s*(\d+\.?\d*)', message)
+        match = re.search(r'\b\d+\.?\d*///(\d+\.?\d*)', message)  # <--- New pattern added
         if not match:
             match = re.search(r'@\d+\.?\d*\s*-\s*(\d+\.?\d*)', message)
         if not match:
             match = re.search(r'@\s*\d+\.?\d*\s*-\s*(\d+\.?\d*)', message)
         if not match:
-            match = re.search(
-                r'@\s*\d+\.?\d*\s*-\s*(\d+\.?\d*)|:\s*\d+\.?\d*\s*-\s*(\d+\.?\d*)', message)
+            match = re.search(r'@\s*\d+\.?\d*\s*-\s*(\d+\.?\d*)|:\s*\d+\.?\d*\s*-\s*(\d+\.?\d*)', message)
         if not match:
             match = re.search(r'\b\d+\.?\d*\s*-\s*(\d+\.?\d*)', message)
         if not match:
@@ -78,8 +76,6 @@ def GetSecondPrice(message):
 
         return second_number
     except Exception as e:
-        # logger.error("Can't deserilize message '" +
-        #              message + "' for second price: \n" + e)
         return None
 
 def GetTakeProfits(message):
@@ -94,6 +90,9 @@ def GetTakeProfits(message):
             if not tp_match:
                 tp_match = re.findall(
                     r'tp\s*:\s*(\d+\.?\d*)', sentence, re.IGNORECASE)
+            tp_matches = re.findall(r'tp\d*\s*[.:]?\s*(\d+\.?\d*)', sentence, re.IGNORECASE)
+            if tp_matches:
+                tp_numbers.extend([float(tp) for tp in tp_matches])
             if not tp_match:
                 tp_match = re.findall(
                     r'tp1\s*:\s*(\d+\.?\d*)', sentence, re.IGNORECASE)
@@ -115,9 +114,9 @@ def GetTakeProfits(message):
             if not tp_match:
                 tp_match = re.findall(
                     r'take\s*profit\s*1\s*:\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)      
-            if not tp_match:
-                tp_match = re.findall(
-                    r'tp\s*(?:\d*[\s:]+)?(\d+\.\d+|\d+)', sentence, re.IGNORECASE)
+            # if not tp_match:
+            #     tp_match = re.findall(
+            #         r'tp\s*(?:\d*[\s:]+)?(\d+\.\d+|\d+)', sentence, re.IGNORECASE)
             if not tp_match:
                 tp_match = re.findall(r'تی پی\s*(\d+)', message)
             if tp_match:
