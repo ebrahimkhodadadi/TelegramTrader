@@ -10,6 +10,8 @@ import asyncio
 
 
 def Handle(messageType, text, comment, username, message_id, chat_id):
+    HandleRiskFree(chat_id, text)
+    
     cfg = Configure.GetSettings()
     if getattr(cfg, "Timer", None) is not None:
         if(Helper.is_now_between(cfg.Timer.start, cfg.Timer.end) == False):
@@ -17,7 +19,6 @@ def Handle(messageType, text, comment, username, message_id, chat_id):
             return
     
     HandleOpenPosition(messageType, text, comment, username, message_id, chat_id)
-    HandleRiskFree(chat_id, text)
 
 
 def HandleOpenPosition(messageType, text, comment, message_username, message_id, chat_id):
