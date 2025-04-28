@@ -396,7 +396,7 @@ class MetaTrader:
         return order_type_signal
 
     def validate(self, action, price, symbol, currentPrice=None, isSl=False, isSecondPrice=False):
-        if symbol != self.validate_symbol('XAUUSD'):  # bug: need to fix because current price returns wrong rounded number
+        if symbol != self.validate_symbol('XAUUSD') and symbol != self.validate_symbol('DJIUSD'):  # bug: need to fix because current price returns wrong rounded number
             return float(price)
 
         if currentPrice is None:
@@ -405,7 +405,7 @@ class MetaTrader:
         priceStr = str(int(price))
         currentPrice = int(currentPrice)  # تبدیل قیمت به عدد صحیح
         if len(priceStr) < len(str(currentPrice)):
-            price = int(price)  # تبدیل مقدار ورودی به عدد صحیح
+            fractional_part, price = math.modf(price) # splite int and decimal
 
             # قسمت ابتدایی قیمت فعلی
             base = int(str(currentPrice)[:-len(priceStr)])
@@ -431,7 +431,7 @@ class MetaTrader:
                         base += 1
                         newPrice = float(f"{base}{price}")
 
-            return newPrice
+            return newPrice + fractional_part
 
         return float(price)  # اگر TP از ابتدا معتبر بود، همان را برگردان
 

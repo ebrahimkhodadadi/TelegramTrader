@@ -71,6 +71,8 @@ def GetSecondPrice(message):
             match = re.search(r'\b\d+\.?\d*/(\d+\.?\d*)', message)
         if not match:
             match = re.search(r'=\s*(\d+\.?\d*)', message)
+        if not match:
+            match = re.search(r'(?:\d+\.\d+)[^\d]+(\d+\.\d+)', message)
         if match:
             second_number = float(match.group(1) or match.group(2))
         else:
@@ -165,6 +167,9 @@ def GetStopLoss(message):
                     r'sl\s*:\s*(\d+\.?\d*)', sentence, re.IGNORECASE)
             if not sl_match:
                 sl_match = re.search(
+                    r'حد\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)
+            if not sl_match:
+                sl_match = re.search(
                     r'STOP LOSS\s*:\s*(\d+\.?\d*)', sentence, re.IGNORECASE)
             if not sl_match:
                 sl_match = re.search(
@@ -214,7 +219,7 @@ def GetStopLoss(message):
 
 
 def get_main_word_actiontype(sentence):
-    buy_list = ['buy', 'بخر', 'خرید']
+    buy_list = ['buy', 'بخر', 'خرید', 'بای']
     sell_list = ['sell', 'selll', 'بفروش', 'فروش', 'selling', "𝐒𝐞𝐥𝐥"]
 
     words = sentence.split()
@@ -270,7 +275,7 @@ def GetSymbol(sentence):
             word == 'XAU/USD' or
                 word == 'اونس'):
             return find_similar_word('XAUUSD', symbol_list)
-        if word.upper() == "US30":
+        if word.upper() == "US30" or word == "داوجونز":
             return find_similar_word("DJIUSD"  , symbol_list)    
         if word.upper() == "یورو":
             return find_similar_word("EURUSD", symbol_list)
