@@ -12,6 +12,26 @@ import asyncio
 
 
 class Telegram:
+    """
+Telegram Client Module
+
+This module provides a Telegram client implementation for handling messages and events
+from Telegram channels.
+
+Classes:
+    Telegram: Main class for handling Telegram client operations
+
+Dependencies:
+    - telethon: For Telegram client functionality
+    - loguru: For logging
+    - Configure: For configuration settings
+    - MessageHandler: For message processing
+
+Usage:
+    telegram = Telegram(api_id, api_hash)
+    await telegram.HandleMessages()
+"""
+
     def __init__(self, api_id, api_hash):
         self.api_id = api_id
         self.api_hash = api_hash
@@ -101,7 +121,7 @@ class Telegram:
 
                 # Construct the message link
                 message_link = f"{username}/{message_id}"
-                
+
             return username, message_id, message_link, chat_id
         except:
             return None, None, None
