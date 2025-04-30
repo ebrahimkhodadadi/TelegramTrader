@@ -885,7 +885,7 @@ class MetaTrader:
             if result:
                 mt.close_half_position(order.ticket)
 
-    def Update_signal(signal_id, firstPrice, secondPrice, takeProfits, stopLoss):
+    def Update_last_signal(chat_id, stop_loss):
         cfg = Configure.GetSettings()
         account = MetaTrader.MetaTraderAccount(cfg["MetaTrader"])
         mt = MetaTrader(
@@ -895,13 +895,47 @@ class MetaTrader:
             password=account.password,
             saveProfits=account.SaveProfits,
         )
-                
-        positions = Migrations.get_positions_by_signalid(signal_id)
+        
+        stop_loss = float(stop_loss)
+        
+        positions = Database.Migrations.get_last_signal_positions_by_chatid(chat_id)
+        
+        signal = Migrations.get_signal_by_positionId(positions[0])
+        if signal is None or len(str(signal['stop_loss'])) != len(str(stop_loss)):
+            return
+        
+        result = False
+        for position in positions:
+            result = mt.update_stop_loss(position, stop_loss)
+            
+        if result == True:
+            Migrations.update_stoploss(signal['id'], stop_loss)
+        
+    def Update_signal(signal_id, stopLoss):
+        cfg = Configure.GetSettings()
+        account = MetaTrader.MetaTraderAccount(cfg["MetaTrader"])
+        mt = MetaTrader(
+            path=account.path,
+            server=account.server,
+            user=account.username,
+            password=account.password,
+            saveProfits=account.SaveProfits,
+        )
+        
         stopLoss = float(stopLoss)
         
-        Migrations.update_stoploss(signal_id, stopLoss)
+        positions = Migrations.get_positions_by_signalid(signal_id)
+        
+        signal = Migrations.get_signal_by_id(signal_id)
+        if signal is None or len(str(signal['stop_loss'])) != len(str(stopLoss)):
+            return
+        
+        result = False
         for position in positions:
-            mt.update_stop_loss(position["position_id"], stopLoss)
+            result = mt.update_stop_loss(position["position_id"], stopLoss)
+            
+        if result == True:
+            Migrations.update_stoploss(signal_id, stopLoss)
         
 # ==============================
 # MONITORING

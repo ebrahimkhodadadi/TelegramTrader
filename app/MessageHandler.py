@@ -12,6 +12,7 @@ import asyncio
 
 def Handle(messageType, text, comment, username, message_id, chat_id):
     HandleRiskFree(chat_id, text)
+    HandleLastEdite(chat_id, text)
     
     cfg = Configure.GetSettings()
     if getattr(cfg, "Timer", None) is not None:
@@ -51,7 +52,22 @@ def HandleOpenPosition(messageType, text, comment, message_username, message_id,
 def HandleRiskFree(chat_id, text):
     if 'فری' in text or 'risk free' in text:
         MetaTrader.RiskFreePositions(chat_id)
-
+        
+def HandleLastEdite(chat_id, text):
+    if 'edite' in text or 'update' in text:
+        stop_loss = extract_price(text)
+        if stop_loss is None:
+            return
+        MetaTrader.Update_last_signal(chat_id, stop_loss)
+def HandleParentEdit(chat_id, message_id, text):
+    if 'edite' in text or 'update' in text:
+        stop_loss = extract_price(text)
+        if stop_loss is None:
+            return
+        signal = Database.Migrations.get_signal_by_chat(chat_id, message_id)
+        if signal is None:
+            return
+        MetaTrader.Update_signal(signal["id"], stop_loss)
 def HandleEdite(chat_id, message_id, message):
     signal = Database.Migrations.get_signal_by_chat(chat_id, message_id)
     if signal is None:
@@ -61,7 +77,7 @@ def HandleEdite(chat_id, message_id, message):
     except:
         return
     
-    MetaTrader.Update_signal(signal["id"], firstPrice, secondPrice, takeProfits, stopLoss)
+    MetaTrader.Update_signal(signal["id"], stopLoss)
     
 
 class MessageType(Enum):

@@ -236,6 +236,36 @@ def get_signal_by_chat(chat_id, message_id):
 
     return signal_columns
 
+def get_signal_by_id(signal_id):
+    query = """
+            SELECT *
+            FROM signals
+            WHERE id = ?
+            LIMIT 1
+        """
+    results = signal_repo.execute_query(
+        query, (signal_id,))
+    if results == None or len(results) == 0:
+        return None
+
+    result = results[0]
+
+    # Map the result to a dictionary using the signal_columns as keys
+    signal_columns = {
+        "id": result[0],
+        "telegram_channel_title": result[1],
+        "telegram_message_id": result[2],
+        "telegram_message_chatid": result[3],
+        "open_price": result[4],
+        "second_price": result[5],
+        "stop_loss": result[6],
+        "tp_list": result[7],
+        "symbol": result[8],
+        "current_time": result[9]
+    }
+
+    return signal_columns
+
 
 def update_stoploss(signal_id, stoploss):
     signal_repo.update(signal_id, {"stop_loss": stoploss})

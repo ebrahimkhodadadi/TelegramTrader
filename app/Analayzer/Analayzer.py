@@ -6,6 +6,12 @@ import re
 import os
 from MetaTrader import *
 
+def extract_price(message):
+    match = re.search(r'@[\s]*([0-9]+(?:\.[0-9]+)?)', message)
+    if match:
+        return float(match.group(1))
+    return None
+
 def parse_message(message):
     try:
         if message is None or len(message) < 0:

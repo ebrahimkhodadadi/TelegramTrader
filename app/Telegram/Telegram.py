@@ -49,34 +49,32 @@ Usage:
 
                 @self.client.on(events.NewMessage)
                 async def new_event_handler(event):
-                    await self.HandleEvent(MessageType.New, event)
+                    if event.message.is_reply:
+                        replied = await event.message.get_reply_message()
+                        if replied:
+                            parent_chat_id = clear_chat_id(event.chat_id)
+                            parent_msg_id = replied.id
+
+                            HandleParentEdit(parent_chat_id, parent_msg_id, event.message.message)
+                    else:
+                        await self.HandleEvent(MessageType.New, event)
                     
                 @self.client.on(events.MessageEdited)
                 async def edit_event_handler(event):
-                    chat_id = event.chat_id
-                    # Strip -100 prefix if present
-                    if str(chat_id).startswith("-100"):
-                        raw_id = int(str(chat_id)[4:])
-                    else:
-                        raw_id = chat_id
+                    chat_id = clear_chat_id(event.chat_id)
 
                     message_id = event.message.id
                     text = event.message.message
                     text = text.encode('utf-8', errors='ignore').decode('utf-8')
                     
-                    HandleEdite(raw_id, message_id, text)
+                    HandleEdite(chat_id, message_id, text)
 
                 @self.client.on(events.MessageDeleted)
                 async def delete_event_handler(event):
-                    chat_id = event.chat_id
-                    # Strip -100 prefix if present
-                    if str(chat_id).startswith("-100"):
-                        raw_id = int(str(chat_id)[4:])
-                    else:
-                        raw_id = chat_id
+                    chat_id = clear_chat_id(event.chat_id)
 
                     for msg_id in event.deleted_ids:
-                        print(f"[DELETED] Raw Chat ID: {raw_id}, Message ID: {msg_id}")
+                        print(f"[DELETED] Raw Chat ID: {chat_id}, Message ID: {msg_id}")
 
 
 
@@ -144,3 +142,12 @@ Usage:
             return username, message_id, message_link, chat_id
         except:
             return None, None, None
+
+def clear_chat_id(chat_id):
+    # Strip -100 prefix if present
+    if str(chat_id).startswith("-100"):
+        raw_id = int(str(chat_id)[4:])
+    else:
+        raw_id = chat_id
+        
+    return raw_id
