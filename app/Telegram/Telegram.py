@@ -80,12 +80,6 @@ class Telegram:
                 return
 
         text = event.raw_text.encode('utf-8', errors='ignore').decode('utf-8')
-        # send signal to a channel
-        # try:
-        #     # Bug: fix already exist position telegram
-        #     await self.SendMessage(text)
-        # except:
-        #     pass
 
         # open postion
         Handle(messageType, text, message_link, username, message_id, chat_id)
@@ -111,88 +105,3 @@ class Telegram:
             return username, message_id, message_link, chat_id
         except:
             return None, None, None
-
-    async def SendMessage(self, text):
-        try:
-            try:
-                actionType, symbol, firstPrice, secondPrice, takeProfit, stopLoss = parse_message(
-                    text)
-                if actionType is None or firstPrice is None or stopLoss is None or symbol is None or takeProfit is None:
-                    return
-            except:
-                return
-
-            if actionType.value == 1:  # buy
-                actionType = "Buy"
-            elif actionType.value == 2:  # sell
-                actionType = "Sell"
-
-            if await self.check_duplicate_signal(symbol, firstPrice, stopLoss, takeProfit):
-                return
-
-            # Send signal to channel
-            cfg = Configure.GetSettings()
-
-            if secondPrice is not None:
-                firstPrice = str(firstPrice) + " - " + str(secondPrice)
-
-            message_template = {
-                "message": "🚀 **Forex Signal Alert!** 🚀\n\n"
-                "**Pair:** {pair}\n"
-                "**Action:** {action}\n"
-                "**Entry Price:** {entry_price}\n"
-                "**Stop Loss:** {stop_loss}\n"
-                "**Take Profit:** {take_profit}\n\n"
-                "Join our channel for more signals and updates!\n\n"
-                "{channel_link}"
-            }
-
-            formatted_message = message_template["message"].format(
-                pair=symbol,
-                action=actionType,
-                entry_price=firstPrice,
-                stop_loss=stopLoss,
-                take_profit=takeProfit,
-                channel_link='@'+cfg.Telegram.SignalChannel
-            )
-
-            await self.client.send_message(entity=cfg.Telegram.SignalChannel, message=formatted_message)
-        except Exception as e:
-            logger.exception(f"Error while SendMessage\n{e}")
-
-    async def check_duplicate_signal(self, symbol, entry_price, stop_loss, take_profit):
-        try:
-            cfg = Configure.GetSettings()
-
-            # Get channel entity
-            channel_entity = await self.client.get_input_entity(cfg.Telegram.SignalChannel)
-
-            # Calculate time boundaries for the last 2 hour
-            now = datetime.now()
-            last_hour = now - timedelta(hours=2)
-
-            # Get messages from the last hour
-            messages = await self.client(GetHistoryRequest(
-                peer=channel_entity,
-                offset_id=0,
-                offset_date=last_hour,
-                add_offset=0,
-                limit=100,
-                max_id=0,
-                min_id=0,
-                hash=0
-            ))
-
-            # Check if there are any messages matching the signal parameters
-            for message in messages.messages:
-                if message is None or message.message is None:
-                    continue
-                if (str(symbol) in message.message and
-                    str(entry_price) in message.message and
-                    str(stop_loss) in message.message and
-                        str(take_profit) in message.message):
-                    return True
-
-            return False
-        except Exception as e:
-            logger.exception("Error while checking duplicate signal\n"+str(e))

@@ -17,8 +17,12 @@ async def main():
         cfg = Configure.GetSettings()
 
         # Check if Telegram can be accessed
-        if not Helper.can_access_telegram(cfg.Notification.token):
-            raise Exception("Can't Access Telegram. Enable your VPN.")
+        while True:
+            if not Helper.can_access_telegram(cfg.Notification.token):
+                logger.Error("Can't Access Telegram. Enable your VPN. Try again after 3 seconds...")
+                await asyncio.sleep(3)
+                continue
+            break
 
         # Configure logger
         Configure.ConfigLogger()
