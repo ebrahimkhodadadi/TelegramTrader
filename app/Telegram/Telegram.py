@@ -50,16 +50,35 @@ Usage:
                 @self.client.on(events.NewMessage)
                 async def new_event_handler(event):
                     await self.HandleEvent(MessageType.New, event)
-
+                    
                 @self.client.on(events.MessageEdited)
                 async def edit_event_handler(event):
-                    # username, message_id, message_link = await Telegram.GetMessageDetail(event)
-                    # logger.warning(f"message Edited here is the link: {message_link}")
-                    pass
+                    chat_id = event.chat_id
+                    # Strip -100 prefix if present
+                    if str(chat_id).startswith("-100"):
+                        raw_id = int(str(chat_id)[4:])
+                    else:
+                        raw_id = chat_id
+
+                    message_id = event.message.id
+                    text = event.message.message
+                    text = text.encode('utf-8', errors='ignore').decode('utf-8')
+                    
+                    HandleEdite(raw_id, message_id, text)
 
                 @self.client.on(events.MessageDeleted)
                 async def delete_event_handler(event):
-                    pass
+                    chat_id = event.chat_id
+                    # Strip -100 prefix if present
+                    if str(chat_id).startswith("-100"):
+                        raw_id = int(str(chat_id)[4:])
+                    else:
+                        raw_id = chat_id
+
+                    for msg_id in event.deleted_ids:
+                        print(f"[DELETED] Raw Chat ID: {raw_id}, Message ID: {msg_id}")
+
+
 
                 await self.client.run_until_disconnected()
 

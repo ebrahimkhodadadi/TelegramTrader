@@ -21,7 +21,7 @@ class MetaTrader:
         self.password = password
         self.SaveProfits = saveProfits
         self.magic = 2025
-
+    
     def Login(self) -> bool:
         try:
             if mt5.terminal_info() is not None:
@@ -234,43 +234,78 @@ class MetaTrader:
             self.close_position(ticket)
 
     def update_stop_loss(self, ticket, new_stop_loss):
-        """Updating stop loss"""
-        position = self.get_open_positions(ticket)
-        if (position.sl == new_stop_loss):
-            return False
-
-        symbol_info = mt5.symbol_info(position.symbol)
-        if symbol_info:
+        """
+        Updates stop loss for either an open position or a pending order.
+        Automatically detects the type and applies the correct request.
+        """
+        # تلاش برای پیدا کردن پوزیشن فعال
+        position = mt5.positions_get(ticket=ticket)
+        if position and len(position) > 0:
+            position = position[0]
+            symbol_info = mt5.symbol_info(position.symbol)
+            if not symbol_info:
+                logger.error(f"Symbol info not found for {position.symbol}")
+                return False
+    
             digits = symbol_info.digits
             new_stop_loss = round(new_stop_loss, digits)
-            logger.info(f"try changing {ticket} stop loss {
-                        position.sl} to {new_stop_loss}")
-
-        request = {
-            "action": mt5.TRADE_ACTION_SLTP,
-            "position": ticket,
-            "symbol": position.symbol,
-            "volume": position.volume,
-            "type": mt5.ORDER_TYPE_SELL if position.type == mt5.ORDER_TYPE_BUY else mt5.ORDER_TYPE_BUY,
-            "price_open": position.price_open,
-            "sl": float(new_stop_loss),
-            "tp": position.tp,
-            "magic": self.magic,
-            "deviation": 10,
-            # "comment": "Updating stop loss",
-        }
-
-        # Send the modification request
+    
+            if position.sl == new_stop_loss:
+                # logger.debug(f"SL already at {new_stop_loss} for position {ticket}")
+                return False
+    
+            logger.info(f"Updating SL for position {ticket} to {new_stop_loss}")
+    
+            request = {
+                "action": mt5.TRADE_ACTION_SLTP,
+                "position": ticket,
+                "symbol": position.symbol,
+                "sl": float(new_stop_loss),
+                "tp": position.tp,
+                "magic": position.magic,
+                "deviation": 10
+            }
+    
+        else:
+            # اگر پوزیشن نبود، بررسی اوردر
+            order = mt5.orders_get(ticket=ticket)
+            if not order or len(order) == 0:
+                logger.error(f"Ticket {ticket} not found as position or order.")
+                return False
+    
+            order = order[0]
+            symbol_info = mt5.symbol_info(order.symbol)
+            if not symbol_info:
+                logger.error(f"Symbol info not found for {order.symbol}")
+                return False
+    
+            digits = symbol_info.digits
+            new_stop_loss = round(new_stop_loss, digits)
+    
+            if order.sl == new_stop_loss:
+                logger.debug(f"SL already at {new_stop_loss} for order {ticket}")
+                return False
+    
+            logger.info(f"Updating SL for pending order {ticket} to {new_stop_loss}")
+    
+            request = {
+                "action": mt5.TRADE_ACTION_MODIFY,
+                "order": ticket,
+                "symbol": order.symbol,
+                "price": order.price_open,
+                "sl": float(new_stop_loss),
+                "tp": order.tp,
+                "type_time": order.type_time,
+                "type_filling": order.type_filling
+            }
+    
         result = mt5.order_send(request)
-        logger.info(f"result: {result}")
         if result.retcode != mt5.TRADE_RETCODE_DONE:
-            logger.error(f"Failed to update stop loss for position {
-                         ticket}: {result.comment}")
+            logger.error(f"Failed to update SL for ticket {ticket}: {result.comment}")
             return False
         else:
-            logger.success(f"Successfully updated stop loss for position {
-                           ticket} to {new_stop_loss}")
-        return True
+            logger.success(f"SL for ticket {ticket} successfully updated to {new_stop_loss}")
+            return True
 
     def close_position(self, ticket):
         logger.info(f"Trying to close ticket: {ticket}")
@@ -783,30 +818,21 @@ class MetaTrader:
             return
         validated_tp_levels = mt.validate_tp_list(
             actionType, tp_list, symbol, openPrice, mtAccount.CloserPrice)
+        
         # save to db
-        # Check if a similar record already exists in the database
-        last_signal = Migrations.get_last_record(
-            open_price=openPrice,
-            second_price=secondPrice,
-            stop_loss=sl,
-            symbol=symbol
-        )
-        if last_signal is None:
-            signal_data = {
-                "telegram_channel_title": message_username,
-                "telegram_message_id": message_id,
-                "telegram_message_chatid": message_chatid,
-                "open_price": openPrice,
-                "second_price": secondPrice,
-                "stop_loss": sl,
-                "tp_list": ','.join(map(str, validated_tp_levels)),
-                "symbol": symbol,
-                "current_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            }
-            signal_id = Migrations.signal_repo.insert(signal_data)
-        else:
-            signal_id = last_signal["id"]
-            # return
+        signal_data = {
+            "telegram_channel_title": message_username,
+            "telegram_message_id": message_id,
+            "telegram_message_chatid": message_chatid,
+            "open_price": openPrice,
+            "second_price": secondPrice,
+            "stop_loss": sl,
+            "tp_list": ','.join(map(str, validated_tp_levels)),
+            "symbol": symbol,
+            "current_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        signal_id = Migrations.signal_repo.insert(signal_data)
+            
         # Open Position
         tp_levels = sorted(validated_tp_levels)
         if actionType == mt5.ORDER_TYPE_BUY:
@@ -859,7 +885,24 @@ class MetaTrader:
             if result:
                 mt.close_half_position(order.ticket)
 
-
+    def Update_signal(signal_id, firstPrice, secondPrice, takeProfits, stopLoss):
+        cfg = Configure.GetSettings()
+        account = MetaTrader.MetaTraderAccount(cfg["MetaTrader"])
+        mt = MetaTrader(
+            path=account.path,
+            server=account.server,
+            user=account.username,
+            password=account.password,
+            saveProfits=account.SaveProfits,
+        )
+                
+        positions = Migrations.get_positions_by_signalid(signal_id)
+        stopLoss = float(stopLoss)
+        
+        Migrations.update_stoploss(signal_id, stopLoss)
+        for position in positions:
+            mt.update_stop_loss(position["position_id"], stopLoss)
+        
 # ==============================
 # MONITORING
 # ==============================
@@ -1033,3 +1076,12 @@ class MetaTrader:
                     continue
 
                 self.close_position(position_id)
+                
+
+
+
+
+
+
+
+            

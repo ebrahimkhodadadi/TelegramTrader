@@ -158,6 +158,34 @@ def get_signal_positions_by_positionId(ticket_id):
 
     return position_columns  # Returns a list of dictionaries
 
+def get_positions_by_signalid(signal_id):
+    query = """
+        SELECT * 
+        FROM positions 
+        WHERE signal_id = ?
+        ORDER BY id DESC
+        LIMIT 2;
+    """
+    results = signal_repo.execute_query(query, (signal_id,))
+    
+    if not results:  # More Pythonic way to check for empty results
+        return []
+
+    # Map all rows to a list of dictionaries
+    position_columns = [
+        {
+            "id": row[0],
+            "signal_id": row[1],
+            "position_id": row[2],
+            "user_id": row[3],
+            "is_first": row[4],
+            "is_second": row[5]
+        }
+        for row in results
+    ]
+
+    return position_columns  # Returns a list of dictionaries
+
 def get_position_by_signal_id(signal_id, first=False, second=False):
     query = """
         SELECT * 
@@ -185,3 +213,29 @@ def get_position_by_signal_id(signal_id, first=False, second=False):
     ]
 
     return position_columns[0]  # Returns a list of dictionaries
+
+def get_signal_by_chat(chat_id, message_id):
+    query = """
+            SELECT *
+            FROM signals
+            WHERE telegram_message_chatid = ? AND telegram_message_id = ?
+            ORDER BY id DESC
+            LIMIT 1
+        """
+    results = signal_repo.execute_query(
+        query, (chat_id, message_id))
+    if results == None or len(results) == 0:
+        return None
+
+    result = results[0]
+
+    # Map the result to a dictionary using the signal_columns as keys
+    signal_columns = {
+        "id": result[0]
+    }
+
+    return signal_columns
+
+
+def update_stoploss(signal_id, stoploss):
+    signal_repo.update(signal_id, {"stop_loss": stoploss})

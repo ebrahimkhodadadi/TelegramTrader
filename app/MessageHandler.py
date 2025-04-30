@@ -4,6 +4,7 @@ from loguru import logger
 from enum import Enum
 from Analayzer import *
 import Configure
+import Database
 import Helper
 from MetaTrader import *
 import asyncio
@@ -47,11 +48,21 @@ def HandleOpenPosition(messageType, text, comment, message_username, message_id,
 
     MetaTrader.Trade(message_username, message_id, chat_id, actionType, symbol, firstPrice, secondPrice, takeProfits, stopLoss, comment)
 
-
 def HandleRiskFree(chat_id, text):
     if 'فری' in text or 'risk free' in text:
         MetaTrader.RiskFreePositions(chat_id)
 
+def HandleEdite(chat_id, message_id, message):
+    signal = Database.Migrations.get_signal_by_chat(chat_id, message_id)
+    if signal is None:
+        return
+    try:
+        actionType, symbol, firstPrice, secondPrice, takeProfits, stopLoss = parse_message(message)
+    except:
+        return
+    
+    MetaTrader.Update_signal(signal["id"], firstPrice, secondPrice, takeProfits, stopLoss)
+    
 
 class MessageType(Enum):
     New = 1
