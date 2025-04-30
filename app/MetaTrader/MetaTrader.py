@@ -937,6 +937,20 @@ class MetaTrader:
         if result == True:
             Migrations.update_stoploss(signal_id, stopLoss)
         
+    def delete_signal(signal_id):
+        cfg = Configure.GetSettings()
+        account = MetaTrader.MetaTraderAccount(cfg["MetaTrader"])
+        mt = MetaTrader(
+                path=account.path,
+                server=account.server,
+                user=account.username,
+                password=account.password,
+                saveProfits=account.SaveProfits,
+            )
+        
+        positions = Migrations.get_positions_by_signalid(signal_id)
+        for position in positions:
+            mt.close_position(position["position_id"])
 # ==============================
 # MONITORING
 # ==============================

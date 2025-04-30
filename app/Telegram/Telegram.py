@@ -56,6 +56,7 @@ Usage:
                             parent_msg_id = replied.id
 
                             HandleParentEdit(parent_chat_id, parent_msg_id, event.message.message)
+                            HandleParentDelete(parent_chat_id, parent_msg_id, event.message.message)
                     else:
                         await self.HandleEvent(MessageType.New, event)
                     
@@ -74,9 +75,7 @@ Usage:
                     chat_id = clear_chat_id(event.chat_id)
 
                     for msg_id in event.deleted_ids:
-                        print(f"[DELETED] Raw Chat ID: {chat_id}, Message ID: {msg_id}")
-
-
+                        HandleDelete(chat_id, msg_id)
 
                 await self.client.run_until_disconnected()
 
