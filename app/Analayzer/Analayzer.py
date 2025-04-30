@@ -28,6 +28,9 @@ def parse_message(message):
         stopLoss = GetStopLoss(message)        
         symbol = GetSymbol(message)
 
+        if firstPrice == secondPrice:
+            secondPrice = None
+            
         return actionType, symbol, firstPrice, secondPrice, takeProfits, stopLoss
     except Exception as e:
         logger.error("Error while deserilize message: \n" + e)
@@ -70,7 +73,7 @@ def GetSecondPrice(message):
         if not match:
             match = re.search(r'@\s*\d+\.?\d*\s*-\s*(\d+\.?\d*)|:\s*\d+\.?\d*\s*-\s*(\d+\.?\d*)', message)
         if not match:
-            match = re.search(r'\b\d+\.?\d*\s*-\s*(\d+\.?\d*)', message)
+            match = re.search(r'(\d+\.\d+).*(\d+\.\d+)', message)
         if not match:
             match = re.search(r'\b\d+\b\s*و\s*(\d+)\s*فروش', message)
         if not match:
@@ -134,6 +137,10 @@ def GetTakeProfits(message):
             if tp_match:
                 tp_numbers.extend([float(tp) for tp in tp_match])
             
+            tp_match_takeprofit = re.findall(r'take\s*profit\s*\d+\s*[-:]\s*(\d+\.\d+|\d+)', sentence, re.IGNORECASE)
+            if tp_match_takeprofit:
+                tp_numbers.extend([float(tp) for tp in tp_match_takeprofit])
+
             # Add TP2, TP3, TP4, etc., extraction logic
             tp_match_2 = re.findall(r'tp(\d+)\s*[:\-]?\s*(\d+\.\d+|\d+)', sentence, re.IGNORECASE)
             if tp_match_2:
@@ -172,7 +179,9 @@ def GetStopLoss(message):
                                  sentence, re.IGNORECASE)
             if not sl_match:
                 sl_match = re.search(
-                    r'sl\s*:\s*(\d+\.?\d*)', sentence, re.IGNORECASE)
+                    r'sl\s*:\s*(\d+\.?\d*)', sentence, re.IGNORECASE)            
+            if not sl_match:
+                sl_match = re.search(r'(?i)stop\s*(\d+\.?\d*)', sentence)
             if not sl_match:
                 sl_match = re.search(
                     r'حد\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)
