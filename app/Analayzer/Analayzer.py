@@ -56,6 +56,8 @@ def GetSecondPrice(message):
         if not match:
             match = re.search(r'@\d+\.?\d*\s*-\s*(\d+\.?\d*)', message)
         if not match:
+            match = re.search(r'2(?:nd)?\s+limit\s*@\s*(\d+\.?\d*)', message, re.IGNORECASE)
+        if not match:
             match = re.search(r'\b\d+\.?\d*__+(\d+\.?\d*)', message)     
         if not match:
             match = re.search(r'@\s*\d+\.?\d*\s*-\s*(\d+\.?\d*)', message)
