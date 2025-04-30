@@ -22,7 +22,6 @@ class MetaTrader:
         self.SaveProfits = saveProfits
         self.magic = 2025
 
-    # Refactor: bring whole login here for just one account
     def Login(self) -> bool:
         try:
             if mt5.terminal_info() is not None:
@@ -50,11 +49,7 @@ class MetaTrader:
 
     def get_mt5_time():
         cfg = Configure.GetSettings()
-        meta_trader_accounts = [MetaTrader.MetaTraderAccount(
-            acc) for acc in cfg["MetaTrader"]]
-
-        mtAccount = meta_trader_accounts[0]
-
+        mtAccount = MetaTrader.MetaTraderAccount(cfg["MetaTrader"])
         mt = MetaTrader(
             path=mtAccount.path,
             server=mtAccount.server,
@@ -98,10 +93,7 @@ class MetaTrader:
     def GetSymbols():
         try:
             cfg = Configure.GetSettings()
-            accounts = [MetaTrader.MetaTraderAccount(
-                acc) for acc in cfg["MetaTrader"]]
-
-            account = accounts[0]
+            account = MetaTrader.MetaTraderAccount(cfg["MetaTrader"])
             mt = MetaTrader(
                 path=account.path,
                 server=account.server,
@@ -396,7 +388,8 @@ class MetaTrader:
         return order_type_signal
 
     def validate(self, action, price, symbol, currentPrice=None, isSl=False, isSecondPrice=False):
-        if symbol != self.validate_symbol('XAUUSD') and symbol != self.validate_symbol('DJIUSD'):  # bug: need to fix because current price returns wrong rounded number
+        # bug: need to fix because current price returns wrong rounded number
+        if symbol != self.validate_symbol('XAUUSD') and symbol != self.validate_symbol('DJIUSD'):
             return float(price)
 
         if currentPrice is None:
@@ -405,7 +398,7 @@ class MetaTrader:
         priceStr = str(int(price))
         currentPrice = int(currentPrice)  # تبدیل قیمت به عدد صحیح
         if len(priceStr) < len(str(currentPrice)):
-            fractional_part, price = math.modf(price) # splite int and decimal
+            fractional_part, price = math.modf(price)  # splite int and decimal
 
             # قسمت ابتدایی قیمت فعلی
             base = int(str(currentPrice)[:-len(priceStr)])
@@ -759,8 +752,7 @@ class MetaTrader:
 # ==============================
     def Trade(message_username, message_id, message_chatid, actionType, symbol, openPrice, secondPrice, tp_list, sl, comment):
         cfg = Configure.GetSettings()
-        meta_trader_accounts = [MetaTrader.MetaTraderAccount(
-            acc) for acc in cfg["MetaTrader"]]
+        mtAccount = MetaTrader.MetaTraderAccount(cfg["MetaTrader"])
 
         # action
         if actionType.value == 1:  # buy
@@ -768,145 +760,126 @@ class MetaTrader:
         elif actionType.value == 2:  # sell
             actionType = mt5.ORDER_TYPE_SELL
 
-        for mtAccount in meta_trader_accounts:
-            mt = MetaTrader(
-                path=mtAccount.path,
-                server=mtAccount.server,
-                user=mtAccount.username,
-                password=mtAccount.password
-            )
+        mt = MetaTrader(
+            path=mtAccount.path,
+            server=mtAccount.server,
+            user=mtAccount.username,
+            password=mtAccount.password
+        )
+        if mt.Login() == False:
+            return
+        if mt.CheckSymbol(symbol) == False:
+            return
 
-            if mt.Login() == False:
-                continue
-            if mt.CheckSymbol(symbol) == False:
-                continue
-
-            # validate
-            openPrice = mt.validate(actionType, openPrice, symbol)
-            sl = mt.validate(actionType, sl, symbol, openPrice, isSl=True)
-            if secondPrice != None and secondPrice != 0:
-                secondPrice = mt.validate(
-                    actionType, secondPrice, symbol, isSecondPrice=True)
-                if (actionType == mt5.ORDER_TYPE_BUY and openPrice > secondPrice) or (actionType == mt5.ORDER_TYPE_SELL and openPrice < secondPrice):
-                    openPrice, secondPrice = secondPrice, openPrice
-
-            if tp_list is None:
-                return
-            validated_tp_levels = mt.validate_tp_list(
-                actionType, tp_list, symbol, openPrice, mtAccount.CloserPrice)
-
-            # save to db
-            # Check if a similar record already exists in the database
-            last_signal = Migrations.get_last_record(
-                open_price=openPrice,
-                second_price=secondPrice,
-                stop_loss=sl,
-                symbol=symbol
-            )
-
-            if last_signal is None:
-                signal_data = {
-                    "telegram_channel_title": message_username,
-                    "telegram_message_id": message_id,
-                    "telegram_message_chatid": message_chatid,
-                    "open_price": openPrice,
-                    "second_price": secondPrice,
-                    "stop_loss": sl,
-                    "tp_list": ','.join(map(str, validated_tp_levels)),
-                    "symbol": symbol,
-                    "current_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                }
-                signal_id = Migrations.signal_repo.insert(signal_data)
-            else:
-                signal_id = last_signal["id"]
-                # return
-
-            # Open Position
-            tp_levels = sorted(validated_tp_levels)
-            if actionType == mt5.ORDER_TYPE_BUY:
-                tp = max(tp_levels)
-            else:
-                tp = min(tp_levels)
-
+        # validate
+        openPrice = mt.validate(actionType, openPrice, symbol)
+        sl = mt.validate(actionType, sl, symbol, openPrice, isSl=True)
+        if secondPrice != None and secondPrice != 0:
+            secondPrice = mt.validate(
+                actionType, secondPrice, symbol, isSecondPrice=True)
+            if (actionType == mt5.ORDER_TYPE_BUY and openPrice > secondPrice) or (actionType == mt5.ORDER_TYPE_SELL and openPrice < secondPrice):
+                openPrice, secondPrice = secondPrice, openPrice
+        if tp_list is None:
+            return
+        validated_tp_levels = mt.validate_tp_list(
+            actionType, tp_list, symbol, openPrice, mtAccount.CloserPrice)
+        # save to db
+        # Check if a similar record already exists in the database
+        last_signal = Migrations.get_last_record(
+            open_price=openPrice,
+            second_price=secondPrice,
+            stop_loss=sl,
+            symbol=symbol
+        )
+        if last_signal is None:
+            signal_data = {
+                "telegram_channel_title": message_username,
+                "telegram_message_id": message_id,
+                "telegram_message_chatid": message_chatid,
+                "open_price": openPrice,
+                "second_price": secondPrice,
+                "stop_loss": sl,
+                "tp_list": ','.join(map(str, validated_tp_levels)),
+                "symbol": symbol,
+                "current_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+            signal_id = Migrations.signal_repo.insert(signal_data)
+        else:
+            signal_id = last_signal["id"]
+            # return
+        # Open Position
+        tp_levels = sorted(validated_tp_levels)
+        if actionType == mt5.ORDER_TYPE_BUY:
+            tp = max(tp_levels)
+        else:
+            tp = min(tp_levels)
+        # lot
+        lot = mt.calculate_lot_size_with_prices(
+            symbol, mtAccount.lot, openPrice, sl, mtAccount.account_size)
+        mt.OpenPosition(actionType, lot, symbol, sl, tp, openPrice, mtAccount.expirePendinOrderInMinutes,
+                        comment, signal_id, mtAccount.CloserPrice, isFirst=True)
+        if secondPrice is not None and secondPrice != 0 and mtAccount.HighRisk == True:
             # lot
             lot = mt.calculate_lot_size_with_prices(
-                symbol, mtAccount.lot, openPrice, sl, mtAccount.account_size)
-
-            mt.OpenPosition(actionType, lot, symbol, sl, tp, openPrice, mtAccount.expirePendinOrderInMinutes,
-                            comment, signal_id, mtAccount.CloserPrice, isFirst=True)
-
-            if secondPrice is not None and secondPrice != 0 and mtAccount.HighRisk == True:
-                # lot
-                lot = mt.calculate_lot_size_with_prices(
-                    symbol, mtAccount.lot, secondPrice, sl, mtAccount.account_size)
-                # validate
-                secondPrice = mt.validate(actionType, secondPrice, symbol)
-
-                mt.OpenPosition(actionType, lot, symbol, sl, tp, secondPrice, mtAccount.expirePendinOrderInMinutes,
-                                comment, signal_id, mtAccount.CloserPrice, isSecond=True)
+                symbol, mtAccount.lot, secondPrice, sl, mtAccount.account_size)
+            # validate
+            secondPrice = mt.validate(actionType, secondPrice, symbol)
+            mt.OpenPosition(actionType, lot, symbol, sl, tp, secondPrice, mtAccount.expirePendinOrderInMinutes,
+                            comment, signal_id, mtAccount.CloserPrice, isSecond=True)
 
     def RiskFreePositions(message_chatid):
         cfg = Configure.GetSettings()
-        meta_trader_accounts = [MetaTrader.MetaTraderAccount(
-            acc) for acc in cfg["MetaTrader"]]
+        mtAccount = MetaTrader.MetaTraderAccount(cfg["MetaTrader"])
+        mt = MetaTrader(
+            path=mtAccount.path,
+            server=mtAccount.server,
+            user=mtAccount.username,
+            password=mtAccount.password
+        )
 
-        for mtAccount in meta_trader_accounts:
-            mt = MetaTrader(
-                path=mtAccount.path,
-                server=mtAccount.server,
-                user=mtAccount.username,
-                password=mtAccount.password
-            )
-
-            if mt.Login() == False:
-                continue
-
-            positions = Database.Migrations.get_last_signal_positions_by_chatid(
-                message_chatid)
-
-            orders = mt.get_open_positions()
-            for order in (o for o in orders if o.ticket in positions):
-                signal = Database.Migrations.get_signal_by_positionId(
-                    order.ticket)
-                if signal is None:
-                    logger.error(f"Can't find signal {order.ticket}")
-
-                entry_price = signal["open_price"]
-                signal_position = Database.Migrations.get_position_by_signal_id(
-                    signal["id"], first=True)
-                if signal_position is not None:
-                    pos = mt.get_position_or_order(
-                        ticket_id=signal_position["position_id"])
-                    if pos is not None:
-                        entry_price = pos.price_open
-
-                result = mt.update_stop_loss(order.ticket, entry_price)
-
-                if result:
-                    mt.close_half_position(order.ticket)
+        if mt.Login() == False:
+            return
+        positions = Database.Migrations.get_last_signal_positions_by_chatid(
+            message_chatid)
+        orders = mt.get_open_positions()
+        for order in (o for o in orders if o.ticket in positions):
+            signal = Database.Migrations.get_signal_by_positionId(
+                order.ticket)
+            if signal is None:
+                logger.error(f"Can't find signal {order.ticket}")
+            entry_price = signal["open_price"]
+            signal_position = Database.Migrations.get_position_by_signal_id(
+                signal["id"], first=True)
+            if signal_position is not None:
+                pos = mt.get_position_or_order(
+                    ticket_id=signal_position["position_id"])
+                if pos is not None:
+                    entry_price = pos.price_open
+            result = mt.update_stop_loss(order.ticket, entry_price)
+            if result:
+                mt.close_half_position(order.ticket)
 
 
 # ==============================
 # MONITORING
 # ==============================
 
+
     async def monitor_all_accounts():
         """Monitor all accounts concurrently"""
         cfg = Configure.GetSettings()
-        accounts = [MetaTrader.MetaTraderAccount(
-            acc) for acc in cfg["MetaTrader"]]
+        account = MetaTrader.MetaTraderAccount(cfg["MetaTrader"])
 
         # Create tasks for all accounts
         tasks = []
-        for account in accounts:
-            mt = MetaTrader(
-                path=account.path,
-                server=account.server,
-                user=account.username,
-                password=account.password,
-                saveProfits=account.SaveProfits,
-            )
-            tasks.append(mt.monitor_account())
+        mt = MetaTrader(
+            path=account.path,
+            server=account.server,
+            user=account.username,
+            password=account.password,
+            saveProfits=account.SaveProfits,
+        )
+        tasks.append(mt.monitor_account())
 
         await asyncio.gather(*tasks)
 

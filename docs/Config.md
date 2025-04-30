@@ -15,8 +15,7 @@
     "token": "732575:AQlqpWtCl82EQ1Oyk",
     "chatId": 67468216
   },
-  "MetaTrader": [
-    {
+  "MetaTrader": {
       "TakeProfit": 0,
       //"SaveProfits": [20, 30 ,20, 30],
       "server": "CapitalxtendLLC-MU",
@@ -28,8 +27,7 @@
       //"AccountSize": 1000,
       //"CloserPrice": 0.5,
       "path": "C:/Users/Trade4/Desktop/TelegramMetaTrader/terminal64.exe"
-    }
-  ],
+    },
   "Timer": {
     "start": "08:00",
     "end": "18:00"
