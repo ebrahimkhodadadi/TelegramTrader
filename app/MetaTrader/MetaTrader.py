@@ -230,8 +230,8 @@ class MetaTrader:
             else:
                 logger.success(f"Successfully saved profit position for {
                                position.symbol}, ticket {ticket}")
-        # else:
-        #     self.close_position(ticket)
+        else:
+            self.close_position(ticket)
 
     def update_stop_loss(self, ticket, new_stop_loss):
         """Updating stop loss"""
