@@ -28,7 +28,7 @@ def parse_message(message):
         stopLoss = GetStopLoss(message)        
         symbol = GetSymbol(message)
 
-        if firstPrice == secondPrice:
+        if firstPrice == secondPrice or secondPrice in takeProfits or secondPrice == stopLoss:
             secondPrice = None
             
         return actionType, symbol, firstPrice, secondPrice, takeProfits, stopLoss
@@ -41,6 +41,7 @@ def clean_text(text):
     text = unicodedata.normalize("NFKC", text)  # Normalize bold/italic Unicode
     text = re.sub(r'[^\S\r\n]+', ' ', text)  # Remove excessive spaces but keep new lines
     text = re.sub(r'[☑️❌]', '', text)  # Remove ☑️ and ❌ symbols
+    text = re.sub(r'[^\w\s.,:;!?(){}\[\]/\-+=@#%&*\'\"<>]', '', text)
     return text.strip()
 
 def GetFirstPrice(message):
@@ -73,7 +74,7 @@ def GetSecondPrice(message):
         if not match:
             match = re.search(r'@\s*\d+\.?\d*\s*-\s*(\d+\.?\d*)|:\s*\d+\.?\d*\s*-\s*(\d+\.?\d*)', message)
         if not match:
-            match = re.search(r'(\d+\.\d+).*(\d+\.\d+)', message)
+            match = re.search(r'\b\d+\.?\d*\s*-\s*(\d+\.?\d*)', message)
         if not match:
             match = re.search(r'\b\d+\b\s*و\s*(\d+)\s*فروش', message)
         if not match:
@@ -105,9 +106,6 @@ def GetTakeProfits(message):
             if not tp_match:
                 tp_match = re.findall(
                     r'tp\s*:\s*(\d+\.?\d*)', sentence, re.IGNORECASE)
-            tp_matches = re.findall(r'tp\d*\s*[@:.\-]?\s*(\d+\.\d+|\d+)', sentence, re.IGNORECASE)
-            if tp_matches:
-                tp_numbers.extend([float(tp) for tp in tp_matches])
             if not tp_match:
                 tp_match = re.findall(
                     r'tp1\s*:\s*(\d+\.?\d*)', sentence, re.IGNORECASE)
@@ -136,6 +134,10 @@ def GetTakeProfits(message):
                 tp_match = re.findall(r'تی پی\s*(\d+)', message)
             if tp_match:
                 tp_numbers.extend([float(tp) for tp in tp_match])
+            else:
+                tp_matches = re.findall(r'tp\s*\d*\s*[@:.\-]?\s*(\d+\.\d+|\d+)', sentence, re.IGNORECASE)
+                if tp_matches:
+                    tp_numbers.extend([float(tp) for tp in tp_matches])
             
             tp_match_takeprofit = re.findall(r'take\s*profit\s*\d+\s*[-:]\s*(\d+\.\d+|\d+)', sentence, re.IGNORECASE)
             if tp_match_takeprofit:
@@ -281,6 +283,8 @@ def GetSymbol(sentence):
         word = word.replace("/", "").replace("-", "")
         if word.upper() in symbol_list:
             return find_similar_word(word, symbol_list)
+    for word in words:
+        word = word.replace("/", "").replace("-", "")
         if (word == 'طلا' or
             word == 'gold' or
             word == 'Gold' or
