@@ -282,3 +282,6 @@ def get_signal_by_id(signal_id):
 
 def update_stoploss(signal_id, stoploss):
     signal_repo.update(signal_id, {"stop_loss": stoploss})
+    
+def update_takeProfits(signal_id, takeProfits):
+    signal_repo.update(signal_id, {"tp_list": ','.join(map(str, takeProfits))})

@@ -912,7 +912,7 @@ class MetaTrader:
         if result == True:
             Migrations.update_stoploss(signal['id'], stop_loss)
         
-    def Update_signal(signal_id, stopLoss):
+    def Update_signal(signal_id, takeProfits, stopLoss):
         cfg = Configure.GetSettings()
         account = MetaTrader.MetaTraderAccount(cfg["MetaTrader"])
         mt = MetaTrader(
@@ -937,6 +937,9 @@ class MetaTrader:
             
         if result == True:
             Migrations.update_stoploss(signal_id, stopLoss)
+        
+        Migrations.update_takeProfits(signal_id, takeProfits)
+        logger.warning(f'takeprofits updated for signal: {signal_id}.')
         
     def Delete_signal(signal_id):
         cfg = Configure.GetSettings()

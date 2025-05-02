@@ -76,7 +76,7 @@ def HandleEdite(chat_id, message_id, message):
     except:
         return
     
-    MetaTrader.Update_signal(signal["id"], stopLoss)
+    MetaTrader.Update_signal(signal["id"], takeProfits, stopLoss)
     
 def HandleParentDelete(chat_id, message_id, text):
     if 'حذف' in text or 'delete' in text or 'close' in text:
