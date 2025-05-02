@@ -1,6 +1,7 @@
 - Get chatid from @RawDataBot
 - Sample
 
+```
 {
   "Telegram": {
     "api_id": 12345,
@@ -17,7 +18,7 @@
   },
   "MetaTrader": {
       "TakeProfit": 0,
-      //"SaveProfits": [20, 30 ,20, 30],
+      "SaveProfits": [20, 30 ,20, 30],
       "server": "CapitalxtendLLC-MU",
       "username": 101694,
       "password": "rnj6A!F8A",
@@ -28,8 +29,9 @@
       //"CloserPrice": 0.5,
       "path": "C:/Users/Trade4/Desktop/TelegramMetaTrader/terminal64.exe"
     },
-  "Timer": {
+  <!-- "Timer": {
     "start": "08:00",
     "end": "18:00"
-  }
+  } -->
 }
+```
