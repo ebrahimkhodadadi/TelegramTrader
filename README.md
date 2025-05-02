@@ -1,6 +1,30 @@
 ## Demo
 ![Screenshot](HowTo.gif)
 
+// ... existing code ...
+
+# Features
+
+- **MetaTrader 5 Integration**: Connects to MetaTrader 5 terminals for automated trading operations.
+- **Symbol Management**: Validates and manages trading symbols, including visibility and selection in MarketWatch.
+- **Account Login**: Handles secure login to MetaTrader accounts with error handling.
+- **Position Management**:
+  - Retrieve open positions and pending orders.
+  - Close full or half of a position.
+  - Save partial profits based on customizable strategies.
+  - Automatically close positions or remove pending orders.
+- **Order Management**:
+  - Determine order type (market, limit, stop) based on price and strategy.
+  - Place, modify, or remove pending orders.
+- **Stop Loss & Take Profit**:
+  - Update stop loss for both open positions and pending orders.
+  - Validate and adjust take profit levels for different trading scenarios.
+- **Utility Functions**:
+  - Retrieve server time from MetaTrader.
+  - Validate and adjust price levels for various trading actions.
+  - Support for custom strategies and advanced order logic.
+- **Logging & Error Handling**: Uses structured logging for all trading actions and error conditions.
+
 # Project Setup Guide
 
 Follow these steps to set up and run the project.
