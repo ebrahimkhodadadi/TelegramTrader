@@ -1,10 +1,7 @@
 ## Demo
 ![Screenshot](HowTo.gif)
 
-// ... existing code ...
-
 # Features
-
 - **MetaTrader 5 Integration**: Connects to MetaTrader 5 terminals for automated trading operations.
 - **Symbol Management**: Validates and manages trading symbols, including visibility and selection in MarketWatch.
 - **Account Login**: Handles secure login to MetaTrader accounts with error handling.
