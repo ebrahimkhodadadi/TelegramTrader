@@ -15,6 +15,9 @@ Follow these steps to set up and run the project.
 ```bash
 cd app && python runner.py
 ```
+### Or 
+1. download the [latest Release](https://github.com/ebrahimkhodadadi/TelegramTrader/releases) 
+2. create [settings.json](https://github.com/ebrahimkhodadadi/TelegramTrader/blob/master/docs/Config.md) next to it
 
 ## Requirements Installation
 Before running the application, install the required dependencies:
