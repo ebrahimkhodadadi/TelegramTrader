@@ -965,7 +965,11 @@ class MetaTrader:
         
         positions = Migrations.get_positions_by_signalid(signal_id)
         for position in positions:
-            mt.close_half_position(position["position_id"])
+            position = mt.get_position_or_order(position["position_id"])
+            if position is not None:
+                mt.close_half_position(position["position_id"])
+                mt.update_stop_loss(position["position_id"], position.price_open)
+                
 # ==============================
 # MONITORING
 # ==============================
