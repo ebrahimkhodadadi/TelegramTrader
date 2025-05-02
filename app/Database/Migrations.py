@@ -67,6 +67,19 @@ def get_last_signal_positions_by_chatid(chat_id):
     positions = position_repo.execute_query(query, (chat_id,)) 
     return [x[0] for x in positions]
 
+def get_last_signal_positions_by_chatid_and_messageid(chat_id, message_id):
+    """Read last signal positions from the database"""
+    query = """
+        SELECT p.position_id 
+        FROM positions p
+        INNER JOIN signals s ON p.signal_id = s.id
+        WHERE s.telegram_message_chatid = ? AND telegram_message_id =?
+        ORDER BY p.id DESC
+        LIMIT 2
+    """
+    positions = position_repo.execute_query(query, (chat_id, message_id,)) 
+    return [x[0] for x in positions]
+
 
 def get_last_record(open_price, second_price, stop_loss, symbol):
     query = """

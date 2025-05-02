@@ -50,10 +50,7 @@ def HandleOpenPosition(messageType, text, comment, message_username, message_id,
 
 def HandleParentRiskFree(chat_id, message_id, text):
     if 'فری' in text or 'risk free' in text:
-        signal = Database.Migrations.get_signal_by_chat(chat_id, message_id)
-        if signal is None:
-            return
-        MetaTrader.RiskFreePositions(signal["id"])
+        MetaTrader.RiskFreePositions(chat_id, message_id)
         
 def HandleLastEdite(chat_id, text):
     if 'edite' in text or 'update' in text:

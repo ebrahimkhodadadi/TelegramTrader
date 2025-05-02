@@ -853,7 +853,7 @@ class MetaTrader:
             mt.OpenPosition(actionType, lot, symbol, sl, tp, secondPrice, mtAccount.expirePendinOrderInMinutes,
                             comment, signal_id, mtAccount.CloserPrice, isSecond=True)
 
-    def RiskFreePositions(signal_id):
+    def RiskFreePositions(chat_id, message_id):
         cfg = Configure.GetSettings()
         mtAccount = MetaTrader.MetaTraderAccount(cfg["MetaTrader"])
         mt = MetaTrader(
@@ -866,7 +866,7 @@ class MetaTrader:
         if mt.Login() == False:
             return
         
-        positions = Migrations.get_positions_by_signalid(signal_id)
+        positions = Migrations.get_last_signal_positions_by_chatid_and_messageid(chat_id,message_id)
         
         orders = mt.get_open_positions()
         for order in (o for o in orders if o.ticket in positions):
