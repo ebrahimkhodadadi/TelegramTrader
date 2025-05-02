@@ -80,7 +80,7 @@ def HandleEdite(chat_id, message_id, message):
     MetaTrader.Update_signal(signal["id"], stopLoss)
     
 def HandleParentDelete(chat_id, message_id, text):
-    if 'حذف' in text or 'delete' in text:
+    if 'حذف' in text or 'delete' in text or 'close' in text:
         signal = Database.Migrations.get_signal_by_chat(chat_id, message_id)
         if signal is None:
             return
