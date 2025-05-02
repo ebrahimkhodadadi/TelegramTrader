@@ -58,6 +58,7 @@ Usage:
 
                             HandleParentEdit(parent_chat_id, parent_msg_id, message)
                             HandleParentDelete(parent_chat_id, parent_msg_id, message)
+                            HandleParentRiskFree(parent_chat_id, parent_msg_id, message)
                     else:
                         await self.HandleEvent(MessageType.New, event)
                     

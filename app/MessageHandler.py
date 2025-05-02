@@ -11,7 +11,6 @@ import asyncio
 
 
 def Handle(messageType, text, comment, username, message_id, chat_id):
-    HandleRiskFree(chat_id, text)
     HandleLastEdite(chat_id, text)
     
     cfg = Configure.GetSettings()
@@ -49,9 +48,12 @@ def HandleOpenPosition(messageType, text, comment, message_username, message_id,
 
     MetaTrader.Trade(message_username, message_id, chat_id, actionType, symbol, firstPrice, secondPrice, takeProfits, stopLoss, comment)
 
-def HandleRiskFree(chat_id, text):
+def HandleParentRiskFree(chat_id, message_id, text):
     if 'فری' in text or 'risk free' in text:
-        MetaTrader.RiskFreePositions(chat_id)
+        signal = Database.Migrations.get_signal_by_chat(chat_id, message_id)
+        if signal is None:
+            return
+        MetaTrader.RiskFreePositions(signal["id"])
         
 def HandleLastEdite(chat_id, text):
     if 'edite' in text or 'update' in text:
