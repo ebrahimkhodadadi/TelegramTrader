@@ -84,13 +84,16 @@ def HandleParentDelete(chat_id, message_id, text):
         signal = Database.Migrations.get_signal_by_chat(chat_id, message_id)
         if signal is None:
             return
-        MetaTrader.delete_signal(signal["id"])
+        if 'half' in text:
+            MetaTrader.Close_half_signal(signal["id"])
+        else:
+            MetaTrader.Delete_signal(signal["id"])
 def HandleDelete(chat_id, message_id):
     signal = Database.Migrations.get_signal_by_chat(chat_id, message_id)
     if signal is None:
         return
 
-    MetaTrader.delete_signal(signal["id"])
+    MetaTrader.Delete_signal(signal["id"])
     
         
 class MessageType(Enum):

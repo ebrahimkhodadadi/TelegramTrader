@@ -217,6 +217,8 @@ def GetStopLoss(message):
                     r'استاپ\s*(\d+\.?\d*)', message, re.IGNORECASE)
             if not sl_match:
                 sl_match = re.search(r'sl[\s.:]*([\d]+\.?\d*)', sentence, re.IGNORECASE)
+            if not sl_match:
+                sl_match = re.search(r'stop\s*loss\s*(?:point)?\s*[:\-]?\s*(\d+\.\d+|\d+)', message, re.IGNORECASE)
             if sl_match:
                 sl_numbers.append(float(sl_match.group(1)))
             if not sl_numbers:

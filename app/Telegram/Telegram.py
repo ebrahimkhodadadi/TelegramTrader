@@ -54,9 +54,10 @@ Usage:
                         if replied:
                             parent_chat_id = clear_chat_id(event.chat_id)
                             parent_msg_id = replied.id
+                            message = event.message.message.lower()
 
-                            HandleParentEdit(parent_chat_id, parent_msg_id, event.message.message)
-                            HandleParentDelete(parent_chat_id, parent_msg_id, event.message.message)
+                            HandleParentEdit(parent_chat_id, parent_msg_id, message)
+                            HandleParentDelete(parent_chat_id, parent_msg_id, message)
                     else:
                         await self.HandleEvent(MessageType.New, event)
                     
@@ -65,7 +66,7 @@ Usage:
                     chat_id = clear_chat_id(event.chat_id)
 
                     message_id = event.message.id
-                    text = event.message.message
+                    text = event.message.message.lower()
                     text = text.encode('utf-8', errors='ignore').decode('utf-8')
                     
                     HandleEdite(chat_id, message_id, text)
