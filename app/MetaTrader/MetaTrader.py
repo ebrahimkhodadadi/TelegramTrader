@@ -207,6 +207,12 @@ class MetaTrader:
         logger.warning(
             f"new lot size to save {self.SaveProfits[index]}% profit of {ticket} is {new_lot_size}")
 
+                #close whole position
+        
+        if self.SaveProfits[index] == 100: 
+            self.close_position(ticket)
+            return
+            
         if new_lot_size >= 0.01:
             request = {
                 "action": mt5.TRADE_ACTION_DEAL,
