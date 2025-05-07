@@ -114,9 +114,14 @@ def GetTakeProfits(message):
             # Extract TP numbers for various formats
             tp_match = re.findall(
                 r'tp\s*\d*\s*[@:.\-]?\s*(\d+\.\d+|\d+)', sentence, re.IGNORECASE)
+            if tp_match and tp_match[0] == '0':
+                tp_match = None
             if not tp_match:
                 tp_match = re.findall(
                     r'tp\s*(?:\d*\s*:\s*)?(\d+\.\d+)', sentence, re.IGNORECASE)
+            if not tp_match:
+                tp_match = re.findall(
+                    r'\btp\b\s*[:\-@.]?\s*(\d+(?:\.\d+)?)', sentence, re.IGNORECASE)
             if not tp_match:
                 tp_match = re.findall(
                     r'tp\s*:\s*(\d+\.?\d*)', sentence, re.IGNORECASE)
@@ -308,26 +313,30 @@ def GetSymbol(sentence):
         word = word.replace("/", "").replace("-", "")
         if word.upper() in symbol_list:
             return find_similar_word(word, symbol_list)
+        
     for word in words:
-        word = word.replace("/", "").replace("-", "")
-        if (word == 'طلا' or
-            word == 'gold' or
-            word == 'Gold' or
-            word == 'GOLD' or
-            word == '#XAUUSD' or
-            word == 'انس' or
-            word == 'گلد' or
-            word == '𝐗𝐀𝐔𝐔𝐒𝐃' or
-            word == 'XAU/USD' or
-                word == 'اونس'):
+        # Normalize the word by removing slashes and hyphens
+        word = word.replace("/", "").replace("-", "").upper()
+
+        # XAUUSD check
+        if word in ['طلا', 'gold', 'gld', '#XAUUSD', 'انس', 'گلد', '𝐗𝐀𝐔𝐔𝐒𝐃', 'XAU/USD', 'اونس']:
             return find_similar_word('XAUUSD', symbol_list)
-        if word.upper() == "US30" or word == "داوجونز":
-            return find_similar_word("DJIUSD", symbol_list)
-        if word.upper() == "یورو":
-            return find_similar_word("EURUSD", symbol_list)
-        if word.upper() == "NASDAQ":
-            return find_similar_word("NDAQ", symbol_list)
-        if word.upper() == "OIL":
-            return find_similar_word("USO", symbol_list)
+
+        # DJUSD check
+        if word in ['US30', 'داوجونز']:
+            return find_similar_word('DJIUSD', symbol_list)
+
+        # EURUSD check
+        if word == 'یورو':
+            return find_similar_word('EURUSD', symbol_list)
+
+        # NASDAQ check
+        if word == 'NASDAQ':
+            return find_similar_word('NDAQ', symbol_list)
+
+        # OIL check
+        if 'OIL' in word:
+            return find_similar_word('OIL', symbol_list)
+
 
     return find_similar_word('XAUUSD', symbol_list)
