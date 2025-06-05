@@ -151,4 +151,4 @@ def clear_chat_id(chat_id):
     else:
         raw_id = chat_id
         
-    return raw_id
+    return abs(raw_id)
