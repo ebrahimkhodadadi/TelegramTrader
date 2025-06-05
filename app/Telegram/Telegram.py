@@ -145,6 +145,9 @@ Usage:
             return None, None, None
 
 def clear_chat_id(chat_id):
+    if chat_id is None:
+        return chat_id
+    
     # Strip -100 prefix if present
     if str(chat_id).startswith("-100"):
         raw_id = int(str(chat_id)[4:])
