@@ -469,23 +469,23 @@ class MetaTrader:
 
         return float(price)  # اگر TP از ابتدا معتبر بود، همان را برگردان
 
-    def validate_tp_list(self, action, tp_list, symbol, currentPrice=None, closerPrice=None):
+    def validate_tp_list(self, action, tp_list, symbol, firstPrice, secondPrice=None, closerPrice=None):
         if symbol != self.validate_symbol('XAUUSD'):
             return tp_list
 
         validated_tp_levels = []
 
-        if currentPrice is None:
-            currentPrice = self.get_current_price(symbol, action)
+        if firstPrice is None:
+            firstPrice = self.get_current_price(symbol, action)
 
         last_price = None  # ذخیره آخرین مقدار TP معتبر برای استفاده در مقدار جدید
 
         for price in tp_list:
-            if len(str(int(price))) == len(str(int(currentPrice))):
+            if len(str(int(price))) == len(str(int(firstPrice))):
                 validated_tp_levels.append(price)
                 continue
 
-            currentPrice = int(currentPrice)  # تبدیل قیمت به عدد صحیح
+            firstPrice = int(firstPrice)  # تبدیل قیمت به عدد صحیح
             price = int(price)  # تبدیل مقدار ورودی به عدد صحیح
             priceStr = str(price)
 
@@ -495,17 +495,17 @@ class MetaTrader:
                 base = int(str(last_price)[:-len(priceStr)])
             else:
                 # گرفتن بخش ابتدایی از قیمت فعلی
-                base = int(str(currentPrice)[:-len(priceStr)])
+                base = int(str(firstPrice)[:-len(priceStr)])
 
             newPrice = float(f"{base}{price}")
 
             # تنظیم TP بر اساس نوع سفارش
             if action == mt5.ORDER_TYPE_BUY:
-                while newPrice <= currentPrice:  # افزایش برای BUY
+                while newPrice <= firstPrice or newPrice <= secondPrice:  # افزایش برای BUY
                     base += 1
                     newPrice = float(f"{base}{price}")
             elif action == mt5.ORDER_TYPE_SELL:
-                while newPrice >= currentPrice:  # کاهش برای SELL
+                while newPrice >= firstPrice or newPrice >= secondPrice:  # کاهش برای SELL
                     base -= 1
                     newPrice = float(f"{base}{price}")
 
@@ -823,7 +823,7 @@ class MetaTrader:
         if tp_list is None:
             return
         validated_tp_levels = mt.validate_tp_list(
-            actionType, tp_list, symbol, openPrice, mtAccount.CloserPrice)
+            actionType, tp_list, symbol, openPrice, secondPrice, mtAccount.CloserPrice)
         
         # save to db
         signal_data = {
