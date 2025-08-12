@@ -79,7 +79,7 @@ def HandleEdite(chat_id, message_id, message):
     MetaTrader.Update_signal(signal["id"], takeProfits, stopLoss)
     
 def HandleParentDelete(chat_id, message_id, text):
-    if any(keyword in text for keyword in ['حذف', 'delete', 'close', 'not a signal']):
+    if any(keyword in text for keyword in ['حذف', 'delete', 'close', 'not a signal', 'Vip']):
         signal = Database.Migrations.get_signal_by_chat(chat_id, message_id)
         if signal is None:
             return

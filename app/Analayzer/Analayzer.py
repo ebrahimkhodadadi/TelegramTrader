@@ -338,6 +338,4 @@ def GetSymbol(sentence):
         if 'OIL' in word_normalized:
             return find_similar_word('OIL', symbol_list)    
 
-
-
-        return find_similar_word('XAUUSD', symbol_list)
+    return find_similar_word('XAUUSD', symbol_list)
