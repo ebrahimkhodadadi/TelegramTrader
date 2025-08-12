@@ -316,27 +316,28 @@ def GetSymbol(sentence):
         
     for word in words:
         # Normalize the word by removing slashes and hyphens
-        word = word.replace("/", "").replace("-", "").upper()
+        word_normalized = word.replace("/", "").replace("-", "").upper()    
 
         # XAUUSD check
-        if word in ['طلا', 'gold', 'gld', '#XAUUSD', 'انس', 'گلد', '𝐗𝐀𝐔𝐔𝐒𝐃', 'XAU/USD', 'اونس']:
-            return find_similar_word('XAUUSD', symbol_list)
+        if any(x in word_normalized for x in ['طلا', 'GOLD', 'GLD', '#XAUUSD', 'انس', 'گلد', '𝐗𝐀𝐔𝐔𝐒𝐃', 'XAUUSD', 'اونس']):
+            return find_similar_word('XAUUSD', symbol_list) 
 
-        # DJUSD check
-        if word in ['US30', 'داوجونز']:
-            return find_similar_word('DJIUSD', symbol_list)
+        # DJUSD check (US30 / Dow Jones)
+        if any(x in word_normalized for x in ['US30', 'داوجونز']):
+            return find_similar_word('DJIUSD', symbol_list) 
 
         # EURUSD check
-        if word == 'یورو':
-            return find_similar_word('EURUSD', symbol_list)
+        if any(x in word_normalized for x in ['یورو', 'EURUSD']):
+            return find_similar_word('EURUSD', symbol_list) 
 
         # NASDAQ check
-        if word == 'NASDAQ':
-            return find_similar_word('NDAQ', symbol_list)
+        if 'NASDAQ' in word_normalized:
+            return find_similar_word('NDAQ', symbol_list)   
 
         # OIL check
-        if 'OIL' in word:
-            return find_similar_word('OIL', symbol_list)
+        if 'OIL' in word_normalized:
+            return find_similar_word('OIL', symbol_list)    
 
 
-    return find_similar_word('XAUUSD', symbol_list)
+
+        return find_similar_word('XAUUSD', symbol_list)
