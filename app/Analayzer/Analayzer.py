@@ -5,6 +5,7 @@ import json
 import re
 import os
 from MetaTrader import *
+import Configure
 
 
 def extract_price(message):
@@ -300,10 +301,24 @@ def read_symbol_list():
 
 def find_similar_word(word, symbol_list):
     word_upper = word.upper()
-    for symbol in symbol_list:
-        if word_upper in symbol:
-            return symbol  # Return the first match
-    return None  # Return None if no match is found
+    matches = [symbol for symbol in symbol_list if word_upper in symbol]
+    if not matches:
+        return None
+
+    cfg = Configure.GetSettings()
+    mappings = cfg.get("MetaTrader", {}).get("SymbolMappings", {})
+
+    if word_upper in mappings:
+        exact = mappings[word_upper]
+        if exact in symbol_list:
+            return exact
+
+    # If not mapped, choose the one without ! or #
+    no_suffix = [s for s in matches if '!' not in s and '#' not in s]
+    if no_suffix:
+        return no_suffix[0]
+    # Else first
+    return matches[0]
 
 
 def GetSymbol(sentence):

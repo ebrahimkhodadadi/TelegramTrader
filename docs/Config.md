@@ -25,6 +25,7 @@
       "HighRisk": false, // if you have two entry point change it true
       "AccountSize": 1000, // optional: otherwise it use current account size
       "CloserPrice": 0.5, // optional: to entry closer to the current price
+      "SymbolMappings": {"XAUUSD": "xauusd!", "EURUSD": "eurusd"}, // optional: map base symbol to exact symbol variant, if not set, uses plain symbol without ! or #
       "path": "C:/Users/Trade/Desktop/TelegramMetaTrader/terminal64.exe"
     },
     "Timer": { // optional: controll trade time

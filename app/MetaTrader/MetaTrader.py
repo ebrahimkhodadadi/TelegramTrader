@@ -42,10 +42,24 @@ class MetaTrader:
     def validate_symbol(self, symbol):
         symbol_list = MetaTrader.GetSymbols()
         symbol = symbol.upper()
-        for symbol_mt in symbol_list:
-            if symbol in symbol_mt:
-                return symbol_mt
-        return symbol
+        matches = [symbol_mt for symbol_mt in symbol_list if symbol in symbol_mt]
+        if not matches:
+            return symbol
+
+        cfg = Configure.GetSettings()
+        mappings = cfg.get("MetaTrader", {}).get("SymbolMappings", {})
+
+        if symbol in mappings:
+            exact = mappings[symbol]
+            if exact in symbol_list:
+                return exact
+
+        # If not mapped, choose the one without ! or #
+        no_suffix = [s for s in matches if '!' not in s and '#' not in s]
+        if no_suffix:
+            return no_suffix[0]
+        # Else first
+        return matches[0]
 
     def get_mt5_time():
         cfg = Configure.GetSettings()
