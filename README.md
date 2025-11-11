@@ -1,67 +1,138 @@
+# TelegramTrader
+
+TelegramTrader is an automated trading bot that monitors Telegram channels for trading signals, parses them using advanced regex patterns, and executes trades on MetaTrader 5 terminals. It supports risk management, position monitoring, and customizable trading strategies.
+
 ## Demo
-![Screenshot](HowTo.gif)
 
-# Features
-- **MetaTrader 5 Integration**: Connects to MetaTrader 5 terminals for automated trading operations.
-- **Symbol Management**: Validates and manages trading symbols, including visibility and selection in MarketWatch.
-- **Account Login**: Handles secure login to MetaTrader accounts with error handling.
-- **Position Management**:
-  - Retrieve open positions and pending orders.
-  - Close full or half of a position.
-  - Save partial profits based on customizable strategies.
-  - Automatically close positions or remove pending orders.
-- **Order Management**:
-  - Determine order type (market, limit, stop) based on price and strategy.
-  - Place, modify, or remove pending orders.
-- **Stop Loss & Take Profit**:
-  - Update stop loss for both open positions and pending orders.
-  - Validate and adjust take profit levels for different trading scenarios.
-- **Utility Functions**:
-  - Retrieve server time from MetaTrader.
-  - Validate and adjust price levels for various trading actions.
-  - Support for custom strategies and advanced order logic.
-- **Logging & Error Handling**: Uses structured logging for all trading actions and error conditions.
+![Demo](HowTo.gif)
 
-# Project Setup Guide
+## Features
 
-Follow these steps to set up and run the project.
+### Core Functionality
+- **Automated Signal Processing**: Listens to Telegram channels and automatically parses trading signals
+- **Multi-Symbol Support**: Handles various trading instruments including forex, commodities, and indices
+- **Risk Management**: Implements stop-loss, take-profit, and position sizing based on account balance
+- **Dual Entry Points**: Optional high-risk mode with two entry levels for better averaging
 
-## 1. Configure Environment Variables
-- Select and configure your environment in the `.env` file.
+### Trading Operations
+- **Order Types**: Supports market, limit, and stop orders
+- **Position Management**: Partial closures, profit saving strategies, and trailing stops
+- **Symbol Validation**: Automatic symbol mapping for different broker conventions (e.g., XAUUSD vs xauusd!)
+- **Time-Based Trading**: Optional trading hour restrictions
 
-## 2. Set Application Settings
-- Update the configuration files located in the `config` folder. Ensure that all required settings are defined in the appropriate `.json` files.
+### Integration & Monitoring
+- **MetaTrader 5 Integration**: Full API integration for order execution and position monitoring
+- **Telegram Notifications**: Real-time notifications via Telegram bot
+- **Comprehensive Logging**: Structured logging with timestamps and error tracking
+- **Database Storage**: SQLite-based storage for signals and position tracking
 
-## 3. Run the Application
-```bash
-cd app && python runner.py
+### Advanced Features
+- **Trailing Stop Loss**: Automatic adjustment of stop losses as profits increase
+- **Profit Saving**: Configurable partial profit taking at multiple levels
+- **Message Editing Support**: Handles signal updates and modifications
+- **Channel Filtering**: Whitelist/blacklist system for channel management
+
+## Installation
+
+### Prerequisites
+- Python 3.8+
+- MetaTrader 5 terminal installed
+- Telegram API credentials
+
+### Quick Start
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/ebrahimkhodadadi/TelegramTrader.git
+   cd TelegramTrader
+   ```
+
+2. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Configure settings**
+   - Create `settings.json` based on [Configuration Guide](docs/Config.md)
+   - Set up your MetaTrader credentials and Telegram API keys
+
+4. **Run the application**
+   ```bash
+   cd app
+   python runner.py
+   ```
+
+### Alternative: Pre-built Release
+1. Download the latest release from [GitHub Releases](https://github.com/ebrahimkhodadadi/TelegramTrader/releases)
+2. Place `settings.json` alongside the executable
+3. Run the executable
+
+## Configuration
+
+Create a `settings.json` file with your trading parameters. See [Configuration Guide](docs/Config.md) for detailed instructions.
+
+Key settings include:
+- MetaTrader server credentials and account details
+- Telegram API keys and channel filters
+- Risk management parameters (lot sizes, profit targets)
+- Symbol mappings for your broker
+
+## Usage
+
+### Signal Format
+The bot recognizes trading signals in various formats. Common patterns include:
+
 ```
-### Or 
-1. download the [latest Release](https://github.com/ebrahimkhodadadi/TelegramTrader/releases) 
-2. create [settings.json](https://github.com/ebrahimkhodadadi/TelegramTrader/blob/master/docs/Config.md) next to it
+BUY EURUSD @ 1.0850
+SL: 1.0800
+TP: 1.0900, 1.0950
 
-## Requirements Installation
-Before running the application, install the required dependencies:
-
-```bash
-# Install necessary Python packages
-pip install python-configuration
-pip install setuptools
-pip install -r requirements.txt
+SELL XAUUSD @ 1950.50
+Stop Loss: 1945.00
+Take Profit: 1960.00, 1970.00
 ```
 
----
+### Supported Commands
+- **Edit/Update**: Modify stop loss or take profit levels
+- **Delete/Close**: Close positions
+- **Half**: Close half of a position
+- **Risk Free**: Move stop loss to entry price
 
-# Running Tests
+### Monitoring
+- Logs are saved daily in the `log/` directory
+- Telegram notifications for important events
+- Real-time position monitoring and trailing stops
 
-To run the unit tests, use the following command:
+## Testing
+
+Run the test suite to verify functionality:
 
 ```bash
-python -m unittest .\tests\AnalyzerTest.py
+python -m unittest tests/AnalyzerTest.py
 ```
-
----
 
 ## Documentation
 
-For more detailed information about the project, please refer to the documentation located in the `/docs` folder.
+Detailed documentation is available in the `docs/` folder:
+
+- [Configuration Guide](docs/Config.md) - Complete settings reference
+- [Analyzer Documentation](docs/Analayzer.md) - Signal parsing details
+- [MetaTrader Integration](docs/MetaTrader.md) - MT5 API usage
+- [Telegram Integration](docs/Telegram.md) - Telegram API setup
+- [Release Guide](docs/Release.md) - Building executables
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## License
+
+See [LICENSE](LICENSE) file for details.
+
+## Disclaimer
+
+This software is for educational and research purposes. Trading involves risk of loss. Use at your own risk and always test thoroughly before live trading.
