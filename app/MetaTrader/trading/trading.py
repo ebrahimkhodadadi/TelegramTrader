@@ -292,12 +292,25 @@ class TradingOperations:
         )
 
         positions = Migrations.get_positions_by_signalid(signal_id)
-        for position in positions:
-            logger.info(
-                f"Closing position {position['position_id']} for signal {signal_id}")
-            mt.close_position(position["position_id"])
+        if not positions:
+            logger.warning(f"No positions found for signal {signal_id}")
+            return
 
-        logger.success(f"Signal {signal_id} deleted and all positions closed")
+        # Process position closures concurrently
+        def close_single_position(position):
+            """Close a single position"""
+            logger.info(f"Closing position {position['position_id']} for signal {signal_id}")
+            return mt.close_position(position["position_id"])
+
+        logger.info(f"Closing {len(positions)} positions concurrently for signal {signal_id}")
+
+        # Use ThreadPoolExecutor for concurrent processing
+        with ThreadPoolExecutor(max_workers=min(len(positions), 3)) as executor:
+            futures = [executor.submit(close_single_position, position) for position in positions]
+            results = [future.result() for future in futures]
+
+        successful_closures = sum(1 for result in results if result)
+        logger.success(f"Signal {signal_id} deleted - {successful_closures}/{len(positions)} positions closed successfully")
 
     @staticmethod
     def close_half_signal(signal_id):
@@ -306,7 +319,7 @@ class TradingOperations:
 
         from Configure import GetSettings
         from ..MetaTrader import MetaTrader
-        
+
         cfg = GetSettings()
         account = AccountConfig(cfg["MetaTrader"])
         mt = MetaTrader(
@@ -318,13 +331,28 @@ class TradingOperations:
         )
 
         positions = Migrations.get_positions_by_signalid(signal_id)
-        for position in positions:
+        if not positions:
+            logger.warning(f"No positions found for signal {signal_id}")
+            return
+
+        # Process positions concurrently
+        def process_single_position(position):
+            """Process a single position for half-close operation"""
             position_obj = mt.get_position_or_order(position["position_id"])
             if position_obj is not None:
-                logger.info(
-                    f"Closing half of position {position['position_id']}")
+                logger.info(f"Closing half of position {position['position_id']}")
                 mt.close_half_position(position["position_id"])
-                logger.info(
-                    f"Moving SL to entry price for position {position['position_id']}")
-                mt.update_stop_loss(
-                    position["position_id"], position_obj.price_open)
+                logger.info(f"Moving SL to entry price for position {position['position_id']}")
+                mt.update_stop_loss(position["position_id"], position_obj.price_open)
+                return True
+            return False
+
+        logger.info(f"Processing {len(positions)} positions concurrently for half-close operation")
+
+        # Use ThreadPoolExecutor for concurrent processing
+        with ThreadPoolExecutor(max_workers=min(len(positions), 3)) as executor:
+            futures = [executor.submit(process_single_position, position) for position in positions]
+            results = [future.result() for future in futures]
+
+        successful_operations = sum(1 for result in results if result)
+        logger.success(f"Half-close operation completed for {successful_operations}/{len(positions)} positions in signal {signal_id}")
