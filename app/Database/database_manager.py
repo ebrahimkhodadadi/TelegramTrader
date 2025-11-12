@@ -1,0 +1,51 @@
+"""Database manager for initialization and migrations"""
+
+from typing import Optional
+from loguru import logger
+from .signal_repository import SignalRepository
+from .position_repository import PositionRepository
+
+
+class DatabaseManager:
+    """Manages database initialization and migrations"""
+
+    def __init__(self, db_path: str = "telegramtrader.db"):
+        self.db_path = db_path
+        self.signal_repo = SignalRepository(db_path)
+        self.position_repo = PositionRepository(db_path)
+
+    def initialize_database(self) -> None:
+        """Initialize database tables"""
+        try:
+            logger.info("Initializing database tables...")
+            self.signal_repo.create_table()
+            self.position_repo.create_table()
+            logger.success("Database tables created successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize database: {e}")
+            raise
+
+    def run_migrations(self) -> None:
+        """Run database migrations (alias for initialize_database)"""
+        self.initialize_database()
+
+    def get_signal_repository(self) -> SignalRepository:
+        """Get signal repository instance"""
+        return self.signal_repo
+
+    def get_position_repository(self) -> PositionRepository:
+        """Get position repository instance"""
+        return self.position_repo
+
+
+# Global instance for backward compatibility
+db_manager = DatabaseManager()
+
+# Backward compatibility functions
+def DoMigrations():
+    """Legacy function for running migrations"""
+    db_manager.run_migrations()
+
+# Global repositories for backward compatibility
+signal_repo = db_manager.signal_repo.repository
+position_repo = db_manager.position_repo.repository

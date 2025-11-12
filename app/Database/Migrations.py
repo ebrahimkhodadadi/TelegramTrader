@@ -1,10 +1,16 @@
-from Database.Repository import *
+"""
+Database migrations and legacy compatibility layer
 
+This module provides backward compatibility for existing code
+while using the new modular database architecture.
+"""
 
+from .database_manager import db_manager, DoMigrations as _DoMigrations
+from .signal_repository import signal_repo as _signal_repo
+from .position_repository import position_repo as _position_repo
+
+# Legacy global variables for backward compatibility
 db_path = "telegramtrader.db"
-
-# tables
-# signal
 signal_columns = {
     "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
     "telegram_channel_title": "TEXT NOT NULL",
@@ -17,271 +23,87 @@ signal_columns = {
     "symbol": "TEXT NOT NULL",
     "current_time": "TEXT NOT NULL"
 }
-# position
 position_columns = {
     "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
     "signal_id": "INTEGER NOT NULL",
     "position_id": "INTEGER NOT NULL",
     "user_id": "INTEGER NOT NULL",
-    "is_first": "Boolean NULL",
-    "is_second": "Boolean NULL",
+    "is_first": "BOOLEAN NULL",
+    "is_second": "BOOLEAN NULL",
     "FOREIGN KEY(signal_id)": "REFERENCES Signals(id) ON DELETE CASCADE"
 }
 
-# Create repositories
-signal_repo = SQLiteRepository(db_path, "Signals")
-position_repo = SQLiteRepository(db_path, "Positions")
+# Legacy repository instances
+signal_repo = _signal_repo.repository
+position_repo = _position_repo.repository
 
-# Create tables
-
-
+# Legacy migration function
 def DoMigrations():
-    signal_repo.create_table(signal_columns)
-    position_repo.create_table(position_columns)
+    """Legacy migration function"""
+    _DoMigrations()
 
 
+# Legacy query functions for backward compatibility
 def get_tp_levels(ticket_id):
     """Read Take Profit values from the database"""
-    query = """
-        SELECT s.tp_list 
-        FROM positions p
-        INNER JOIN signals s ON p.signal_id = s.id
-        WHERE p.position_id = ?
-    """
-    signal = signal_repo.execute_query(query, (ticket_id,))
-    if signal and len(signal) > 0:
-        return [float(x) for x in signal[0][0].split(',')]
-    return None
+    return _position_repo.get_tp_levels(ticket_id)
 
 
 def get_last_signal_positions_by_chatid(chat_id):
     """Read last signal positions from the database"""
-    query = """
-        SELECT p.position_id 
-        FROM positions p
-        INNER JOIN signals s ON p.signal_id = s.id
-        WHERE s.telegram_message_chatid = ?
-        ORDER BY p.id DESC
-        LIMIT 2
-    """
-    positions = position_repo.execute_query(query, (chat_id,)) 
-    return [x[0] for x in positions]
+    return _position_repo.get_last_signal_positions_by_chat_id(chat_id)
+
 
 def get_last_signal_positions_by_chatid_and_messageid(chat_id, message_id):
     """Read last signal positions from the database"""
-    query = """
-        SELECT p.position_id 
-        FROM positions p
-        INNER JOIN signals s ON p.signal_id = s.id
-        WHERE s.telegram_message_chatid = ? AND telegram_message_id =?
-        ORDER BY p.id DESC
-        LIMIT 2
-    """
-    positions = position_repo.execute_query(query, (chat_id, message_id,)) 
-    return [x[0] for x in positions]
+    return _position_repo.get_last_signal_positions_by_chat_and_message(chat_id, message_id)
 
 
 def get_last_record(open_price, second_price, stop_loss, symbol):
-    query = """
-            SELECT *
-            FROM signals
-            WHERE open_price = ? AND second_price = ? AND stop_loss = ? AND symbol = ?
-            ORDER BY id DESC
-            LIMIT 1
-        """
-    results = signal_repo.execute_query(
-        query, (open_price, second_price, stop_loss, symbol))
-    if results == None or len(results) == 0:
-        return None
-
-    result = results[0]
-
-    # Map the result to a dictionary using the signal_columns as keys
-    signal_columns = {
-        "id": result[0],
-        "telegram_channel_title": result[1],
-        "telegram_message_id": result[2],
-        "telegram_message_chatid": result[3],
-        "open_price": result[4],
-        "second_price": result[5],
-        "stop_loss": result[6],
-        "tp_list": result[7],
-        "symbol": result[8],
-        "current_time": result[9]
-    }
-
-    return signal_columns
+    """Get last matching signal record"""
+    return _signal_repo.get_last_record(open_price, second_price, stop_loss, symbol)
 
 
 def get_signal_by_positionId(ticket_id):
-    query = """
-        SELECT s.* 
-        FROM signals s
-        INNER JOIN positions p ON p.signal_id = s.id
-        WHERE p.position_id = ?
-        LIMIT 1
-    """
-    results = signal_repo.execute_query(query, (ticket_id,))
-    if results == None or len(results) == 0:
-        return None
-
-    result = results[0]
-
-    # Map the result to a dictionary using the signal_columns as keys
-    signal_columns = {
-        "id": result[0],
-        "telegram_channel_title": result[1],
-        "telegram_message_id": result[2],
-        "telegram_message_chatid": result[3],
-        "open_price": result[4],
-        "second_price": result[5],
-        "stop_loss": result[6],
-        "tp_list": result[7],
-        "symbol": result[8],
-        "current_time": result[9]
-    }
-    return signal_columns
+    """Get signal by position ID"""
+    signal = _signal_repo.get_signal_by_position_id(ticket_id)
+    return signal.to_dict() if signal else None
 
 
 def get_signal_positions_by_positionId(ticket_id):
-    query = """
-        SELECT * 
-        FROM positions 
-        WHERE signal_id = (SELECT signal_id FROM positions WHERE position_id = ?)
-        ORDER BY id DESC
-        LIMIT 2;
-    """
-    results = signal_repo.execute_query(query, (ticket_id,))
-    
-    if not results:  # More Pythonic way to check for empty results
-        return []
+    """Get signal positions by position ID"""
+    positions = _position_repo.get_signal_positions_by_position_id(ticket_id)
+    return [pos.to_dict() for pos in positions]
 
-    # Map all rows to a list of dictionaries
-    position_columns = [
-        {
-            "id": row[0],
-            "signal_id": row[1],
-            "position_id": row[2],
-            "user_id": row[3],
-            "is_first": row[4],
-            "is_second": row[5]
-        }
-        for row in results
-    ]
-
-    return position_columns  # Returns a list of dictionaries
 
 def get_positions_by_signalid(signal_id):
-    query = """
-        SELECT * 
-        FROM positions 
-        WHERE signal_id = ?
-        ORDER BY id DESC
-        LIMIT 2;
-    """
-    results = signal_repo.execute_query(query, (signal_id,))
-    
-    if not results:  # More Pythonic way to check for empty results
-        return []
+    """Get positions by signal ID"""
+    positions = _position_repo.get_positions_by_signal_id(signal_id)
+    return [pos.to_dict() for pos in positions]
 
-    # Map all rows to a list of dictionaries
-    position_columns = [
-        {
-            "id": row[0],
-            "signal_id": row[1],
-            "position_id": row[2],
-            "user_id": row[3],
-            "is_first": row[4],
-            "is_second": row[5]
-        }
-        for row in results
-    ]
-
-    return position_columns  # Returns a list of dictionaries
 
 def get_position_by_signal_id(signal_id, first=False, second=False):
-    query = """
-        SELECT * 
-        FROM positions 
-        WHERE signal_id = ? and (is_first = ? and is_second = ?)
-        ORDER BY id DESC
-        LIMIT 1;
-    """
-    results = signal_repo.execute_query(query, (signal_id, first, second,))
-    
-    if not results:  # More Pythonic way to check for empty results
-        return None
+    """Get position by signal ID with filters"""
+    position = _position_repo.get_position_by_signal_id(signal_id, first, second)
+    return position.to_dict() if position else None
 
-    # Map all rows to a list of dictionaries
-    position_columns = [
-        {
-            "id": row[0],
-            "signal_id": row[1],
-            "position_id": row[2],
-            "user_id": row[3],
-            "is_first": row[4],
-            "is_second": row[5]
-        }
-        for row in results
-    ]
-
-    return position_columns[0]  # Returns a list of dictionaries
 
 def get_signal_by_chat(chat_id, message_id):
-    query = """
-            SELECT *
-            FROM signals
-            WHERE telegram_message_chatid = ? AND telegram_message_id = ?
-            ORDER BY id DESC
-            LIMIT 1
-        """
-    results = signal_repo.execute_query(
-        query, (chat_id, message_id))
-    if results == None or len(results) == 0:
-        return None
+    """Get signal by chat and message ID"""
+    return _signal_repo.get_signal_by_chat(chat_id, message_id)
 
-    result = results[0]
-
-    # Map the result to a dictionary using the signal_columns as keys
-    signal_columns = {
-        "id": result[0]
-    }
-
-    return signal_columns
 
 def get_signal_by_id(signal_id):
-    query = """
-            SELECT *
-            FROM signals
-            WHERE id = ?
-            LIMIT 1
-        """
-    results = signal_repo.execute_query(
-        query, (signal_id,))
-    if results == None or len(results) == 0:
-        return None
-
-    result = results[0]
-
-    # Map the result to a dictionary using the signal_columns as keys
-    signal_columns = {
-        "id": result[0],
-        "telegram_channel_title": result[1],
-        "telegram_message_id": result[2],
-        "telegram_message_chatid": result[3],
-        "open_price": result[4],
-        "second_price": result[5],
-        "stop_loss": result[6],
-        "tp_list": result[7],
-        "symbol": result[8],
-        "current_time": result[9]
-    }
-
-    return signal_columns
+    """Get signal by ID"""
+    signal = _signal_repo.get_signal_by_id(signal_id)
+    return signal.to_dict() if signal else None
 
 
 def update_stoploss(signal_id, stoploss):
-    signal_repo.update(signal_id, {"stop_loss": stoploss})
-    
+    """Update stop loss for signal"""
+    _signal_repo.update_stop_loss(signal_id, stoploss)
+
+
 def update_takeProfits(signal_id, takeProfits):
-    signal_repo.update(signal_id, {"tp_list": ','.join(map(str, takeProfits))})
+    """Update take profits for signal"""
+    _signal_repo.update_take_profits(signal_id, takeProfits)
