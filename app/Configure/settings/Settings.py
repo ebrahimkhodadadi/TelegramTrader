@@ -33,12 +33,12 @@ class SettingsManager:
                 logger.critical(error_msg)
                 raise FileNotFoundError(error_msg)
 
-            logger.info(f"Loading configuration from: {config_file}")
+            # logger.info(f"Loading configuration from: {config_file}")
 
             # Load and parse configuration
             cfg = config_from_json(config_file, read_from_file=True)
 
-            logger.success("Configuration loaded successfully")
+            # logger.success("Configuration loaded successfully")
             return cfg
 
         except Exception as e:
