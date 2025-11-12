@@ -1,12 +1,8 @@
 from datetime import datetime
 from loguru import logger
-from typing import TYPE_CHECKING
 import Database
 from Database import Migrations
-
-if TYPE_CHECKING:
-    from ..connection import AccountConfig
-    from ..MetaTrader import MetaTrader
+from ..connection import AccountConfig
 
 
 class TradingOperations:
