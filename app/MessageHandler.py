@@ -13,6 +13,7 @@ Features:
 """
 
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Optional, List, Any
 from datetime import datetime
@@ -24,6 +25,33 @@ from Configure import GetSettings
 from Database import Migrations
 from Helper import is_now_between
 from MetaTrader import Trade, RiskFreePositions, Update_last_signal, Update_signal, Close_half_signal, Delete_signal
+
+
+class PerformanceMonitor:
+    """Simple performance monitoring for trading operations"""
+
+    _timings = {}
+    _counts = {}
+
+    @staticmethod
+    def start_operation(operation_name):
+        """Start timing an operation"""
+        PerformanceMonitor._timings[operation_name] = time.time()
+
+    @staticmethod
+    def end_operation(operation_name):
+        """End timing an operation and log if slow"""
+        if operation_name in PerformanceMonitor._timings:
+            duration = time.time() - PerformanceMonitor._timings[operation_name]
+            PerformanceMonitor._counts[operation_name] = PerformanceMonitor._counts.get(operation_name, 0) + 1
+
+            # Log slow operations (>100ms)
+            if duration > 0.1:
+                logger.warning(".2f")
+
+            del PerformanceMonitor._timings[operation_name]
+            return duration
+        return 0
 
 
 class MessageType(Enum):
@@ -39,8 +67,9 @@ class ConcurrentOperationProcessor:
     _global_lock = threading.Lock()  # Global lock for critical operations
     _signal_locks = {}  # Per-signal locks to prevent concurrent operations on same signal
     _signal_locks_lock = threading.Lock()  # Lock for managing signal locks
-    _executor = ThreadPoolExecutor(max_workers=3, thread_name_prefix="TradingOps")
-    _rate_limiter = threading.Semaphore(2)  # Limit concurrent MT5 operations
+    _executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="TradingOps")  # Increased workers
+    _rate_limiter = threading.Semaphore(3)  # Increased concurrent MT5 operations
+    _trade_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="TradeOps")  # Dedicated for trade opening
 
     @staticmethod
     def _get_signal_lock(signal_id):
@@ -110,8 +139,9 @@ class ConcurrentOperationProcessor:
 
     @staticmethod
     def shutdown():
-        """Shutdown the executor and cleanup locks"""
+        """Shutdown the executors and cleanup locks"""
         ConcurrentOperationProcessor._executor.shutdown(wait=True)
+        ConcurrentOperationProcessor._trade_executor.shutdown(wait=True)
         # Clear signal locks
         with ConcurrentOperationProcessor._signal_locks_lock:
             ConcurrentOperationProcessor._signal_locks.clear()
@@ -213,6 +243,9 @@ class MessageHandler:
     def _parse_signal(text: str) -> Optional[tuple]:
         """Parse trading signal from message text"""
         try:
+            if not text:
+                # logger.debug("Cannot parse empty text")
+                return None
             return parse_message(text)
         except Exception as e:
             logger.error(f"Error parsing signal text: {e}")
@@ -278,6 +311,10 @@ class MessageHandler:
     def handle_edit(chat_id: int, message_id: int, message: str) -> None:
         """Handle message edits that contain updated signal data"""
         try:
+            if not message:
+                # logger.debug("Edited message has no content")
+                return
+
             signal = Migrations.get_signal_by_chat(chat_id, message_id)
             if signal is None:
                 logger.debug(f"No signal found for edited message {message_id}")

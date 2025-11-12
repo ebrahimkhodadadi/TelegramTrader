@@ -70,8 +70,12 @@ class MonitoringManager:
                 await asyncio.sleep(5)
 
     def trailing(self):
-        """Implement trailing stop logic"""
+        """Implement trailing stop logic with optimizations"""
         positions = self.market_data.get_open_positions()
+
+        # Skip if no positions to process
+        if not positions:
+            return
 
         for position in positions:
             signal = Database.Migrations.get_signal_by_positionId(
@@ -113,37 +117,29 @@ class MonitoringManager:
             tp_levels_buy = sorted(map(float, tp_levels))
             tp_levels_sell = sorted(map(float, tp_levels), reverse=True)
 
-            # Check if price reached take profit level
+            # Check if price reached take profit level (minimize logging in monitoring loop)
             if trade_type == 0:  # Buy position
                 for i, tp in enumerate(tp_levels_buy):
-                    # If price reached TP level and position not yet partially closed
                     if current_price >= tp and stop_loss < tp:
-                        # logger.info(f"Trailing stop triggered for BUY position {ticket} at TP{i+1} ({tp})")
-
-                        # Move stop loss to previous TP level or entry price
                         new_stop_loss = tp_levels_buy[i - 1] if i > 0 else entry_price
-                        if not self.position_manager.update_stop_loss(ticket, new_stop_loss):
-                            continue
-
-                        # Partially close position for profit taking
-                        self.position_manager.save_profit_position(ticket, i, self.save_profits, self.close_positions_on_trail)
+                        if self.position_manager.update_stop_loss(ticket, new_stop_loss):
+                            self.position_manager.save_profit_position(ticket, i, self.save_profits, self.close_positions_on_trail)
+                            break  # Only process first reached TP level
             elif trade_type == 1:  # Sell position
                 for i, tp in enumerate(tp_levels_sell):
-                    # If price reached TP level and position not yet partially closed
                     if current_price <= tp and stop_loss > tp:
-                        # logger.info(f"Trailing stop triggered for SELL position {ticket} at TP{i+1} ({tp})")
-
-                        # Move stop loss to previous TP level or entry price
                         new_stop_loss = tp_levels_sell[i - 1] if i > 0 else entry_price
-                        if not self.position_manager.update_stop_loss(ticket, new_stop_loss):
-                            continue
-
-                        # Partially close position for profit taking
-                        self.position_manager.save_profit_position(ticket, i, self.save_profits, self.close_positions_on_trail)
+                        if self.position_manager.update_stop_loss(ticket, new_stop_loss):
+                            self.position_manager.save_profit_position(ticket, i, self.save_profits, self.close_positions_on_trail)
+                            break  # Only process first reached TP level
 
     def manage_positions(self):
-        """Manage pending orders and position execution"""
+        """Manage pending orders and position execution with optimizations"""
         pending_orders = self.market_data.get_pending_orders()
+
+        # Skip if no pending orders
+        if not pending_orders:
+            return
 
         for order in pending_orders:
             position_id = order.ticket

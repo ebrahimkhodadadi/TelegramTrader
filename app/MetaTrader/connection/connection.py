@@ -69,6 +69,12 @@ class ConnectionManager:
         self.server = server
         self.user = user
         self.password = password
+        # Caching for performance optimization
+        self._symbols_cache = None
+        self._symbols_cache_time = None
+        self._symbol_info_cache = {}
+        self._symbol_info_cache_time = {}
+        self._cache_duration = 300  # 5 minutes cache
 
     def login(self) -> bool:
         """Establish connection to MetaTrader 5 terminal"""
@@ -97,8 +103,19 @@ class ConnectionManager:
             return False
 
     def validate_symbol(self, symbol):
-        """Validate and map symbol to correct MT5 format"""
-        symbol_list = ConnectionManager.get_symbols()
+        """Validate and map symbol to correct MT5 format with caching"""
+        # Use cached symbols if available and not expired
+        current_time = time.time()
+        if (self._symbols_cache is None or
+            self._symbols_cache_time is None or
+            current_time - self._symbols_cache_time > self._cache_duration):
+            self._symbols_cache = ConnectionManager.get_symbols()
+            self._symbols_cache_time = current_time
+
+        symbol_list = self._symbols_cache
+        if symbol_list is None:
+            return symbol.upper()
+
         symbol = symbol.upper()
         matches = [symbol_mt for symbol_mt in symbol_list if symbol in symbol_mt]
         if not matches:
@@ -120,22 +137,37 @@ class ConnectionManager:
         return matches[0]
 
     def check_symbol(self, symbol):
-        """Check if symbol is available and select it in Market Watch"""
-        logger.info("Check symbol " + symbol)
-        symbol_info = mt5.symbol_info(symbol)
+        """Check if symbol is available and select it in Market Watch with caching"""
+        # Check cache first
+        current_time = time.time()
+        cache_key = symbol.upper()
+
+        if (cache_key in self._symbol_info_cache and
+            cache_key in self._symbol_info_cache_time and
+            current_time - self._symbol_info_cache_time[cache_key] < self._cache_duration):
+
+            symbol_info = self._symbol_info_cache[cache_key]
+        else:
+            # Fetch from MT5
+            symbol_info = mt5.symbol_info(symbol)
+            if symbol_info is None:
+                symbol_info = mt5.symbol_info(symbol.upper())
+
+            # Cache the result
+            self._symbol_info_cache[cache_key] = symbol_info
+            self._symbol_info_cache_time[cache_key] = current_time
+
         if symbol_info is None:
-            symbol_info = mt5.symbol_info(symbol.upper())
-        if symbol_info is None:
-            logger.critical(f"not found {symbol}, can not call order_check()")
-            mt5.shutdown()
+            logger.critical(f"Symbol {symbol} not found, cannot place orders")
             return False
+
         # if the symbol is unavailable in MarketWatch, add it
         if not symbol_info.visible:
-            logger.debug(symbol, "is not visible, trying to switch on")
+            logger.debug(f"Symbol {symbol} not visible, selecting in market watch")
             if not mt5.symbol_select(symbol, True):
-                logger.critical("symbol_select({}}) failed, exit", symbol)
-                mt5.shutdown()
+                logger.critical(f"Failed to select symbol {symbol} in market watch")
                 return False
+
         return True
 
 

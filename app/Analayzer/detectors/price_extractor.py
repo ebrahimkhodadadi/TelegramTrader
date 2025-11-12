@@ -6,6 +6,64 @@ import re
 class PriceExtractor:
     """Extracts various price levels from trading signal messages"""
 
+    # Pre-compiled regex patterns for performance
+    _first_price_patterns = [
+        re.compile(r'(\d+(?:\.\d+)?)'),  # General number pattern
+        re.compile(r'(\d+\.\d+)'),       # Decimal number
+        re.compile(r'@ (\d+\.\d+)'),     # @ symbol followed by price
+    ]
+
+    _second_price_patterns = [
+        (re.compile(r'\b\d+\.?\d*///(\d+\.?\d*)'), 1),  # pattern///second_price
+        (re.compile(r'@\d+\.?\d*\s*-\s*(\d+\.?\d*)'), 1),  # @price - second_price
+        (re.compile(r'2(?:nd)?\s+limit\s*@\s*(\d+\.?\d*)', re.IGNORECASE), 1),  # 2nd limit @ price
+        (re.compile(r'\b\d+\.?\d*__+(\d+\.?\d*)'), 1),  # price__+second_price
+        (re.compile(r'@\s*\d+\.?\d*\s*-\s*(\d+\.?\d*)'), 1),  # @ price - second
+        (re.compile(r'@\s*\d+\.?\d*\s*-\s*(\d+\.?\d*)|:\s*\d+\.?\d*\s*-\s*(\d+\.?\d*)'), [1, 2]),  # Alternative
+        (re.compile(r'\b\d+\.?\d*\s*-\s*(\d+\.?\d*)'), 1),  # price - second
+        (re.compile(r'\b\d+\b\s*و\s*(\d+)\s*فروش'), 1),  # Persian: number and sell
+        (re.compile(r'\b\d+\b\s*و\s*(\d+)\s*خرید'), 1),  # Persian: number and buy
+        (re.compile(r'\b\d+\.?\d*/(\d+\.?\d*)'), 1),  # price/second
+        (re.compile(r'=\s*(\d+\.?\d*)'), 1),  # = price
+        (re.compile(r'(?:\d+\.\d+)[^\d]+(\d+\.\d+)'), 1),  # price followed by another price
+    ]
+
+    _tp_patterns = [
+        re.compile(r'tp\s*\d*\s*[@:.\-]?\s*(\d+\.\d+|\d+)', re.IGNORECASE),
+        re.compile(r'tp\s*(?:\d*\s*:\s*)?(\d+\.\d+)', re.IGNORECASE),
+        re.compile(r'\btp\b\s*[:\-@.]?\s*(\d+(?:\.\d+)?)', re.IGNORECASE),
+        re.compile(r'tp\s*:\s*(\d+\.?\d*)', re.IGNORECASE),
+        re.compile(r'tp1\s*:\s*(\d+\.?\d*)', re.IGNORECASE),
+        re.compile(r'tp1\s*\s*(\d+\.?\d*)', re.IGNORECASE),
+        re.compile(r'tp\s*[-:]\s*(\d+\.\d+|\d+)', re.IGNORECASE),
+        re.compile(r'tp\s*1\s*[-:]\s*(\d+\.\d+|\d+)', re.IGNORECASE),
+        re.compile(r'checkpoint\s*1\s*:\s*(\d+\.?\d*|OPEN)', re.IGNORECASE),
+        re.compile(r'takeprofit\s*1\s*=\s*(\d+\.\d+|\d+)', re.IGNORECASE),
+        re.compile(r'take\s*profit\s*1\s*:\s*(\d+\.\d+|\d+)', re.IGNORECASE),
+        re.compile(r'تی پی\s*(\d+)', re.IGNORECASE),  # Persian
+    ]
+
+    _sl_patterns = [
+        re.compile(r'sl\s*:\s*(\d+\.\d+)', re.IGNORECASE),
+        re.compile(r'sl\s*:\s*(\d+\.?\d*)', re.IGNORECASE),
+        re.compile(r'(?i)stop\s*(\d+\.?\d*)'),
+        re.compile(r'حد\s*(\d+\.\d+|\d+)', re.IGNORECASE),  # Persian
+        re.compile(r'STOP LOSS\s*:\s*(\d+\.?\d*)', re.IGNORECASE),
+        re.compile(r'sl\s*[-:]\s*(\d+\.\d+|\d+)', re.IGNORECASE),
+        re.compile(r'sl\s*[:\-]\s*(\d+\.?\d*)', re.IGNORECASE),
+        re.compile(r'stop\s*loss\s*[:\-]\s*(\d+\.?\d*)', re.IGNORECASE),
+        re.compile(r'sl\s*(\d+\.?\d*)', re.IGNORECASE),
+        re.compile(r'stop\s*loss\s*[@:]\s*(\d+\.?\d*)', re.IGNORECASE),
+        re.compile(r'Stoploss\s*=\s*(\d+\.\d+|\d+)', re.IGNORECASE),
+        re.compile(r'SL\s*@\s*(\d+\.\d+|\d+)', re.IGNORECASE),
+        re.compile(r'(?i)stop\s*loss\s*(\d+)'),
+        re.compile(r'استاپ\s*(\d+\.?\d*)', re.IGNORECASE),  # Persian
+        re.compile(r'sl[\s.:]*([\d]+\.?\d*)', re.IGNORECASE),
+        re.compile(r'stop\s*loss\s*(?:point)?\s*[:\-]?\s*(\d+\.\d+|\d+)', re.IGNORECASE),
+    ]
+
+    _simple_price_pattern = re.compile(r'@[\s]*([0-9]+(?:\.[0-9]+)?)')
+
     @staticmethod
     def extract_first_price(message):
         """Extract the primary entry price from message"""
@@ -13,15 +71,9 @@ class PriceExtractor:
             # Replace US30 with DJIUSD for consistency
             message = message.upper().replace("US30", "DJIUSD")
 
-            # Try different patterns for first price
-            patterns = [
-                r'(\d+(?:\.\d+)?)',  # General number pattern
-                r'(\d+\.\d+)',       # Decimal number
-                r'@ (\d+\.\d+)',     # @ symbol followed by price
-            ]
-
-            for pattern in patterns:
-                match = re.findall(pattern, message)
+            # Try pre-compiled patterns for first price
+            for pattern in PriceExtractor._first_price_patterns:
+                match = pattern.findall(message)
                 if match:
                     return float(match[0])
 
@@ -33,24 +85,9 @@ class PriceExtractor:
     def extract_second_price(message):
         """Extract the secondary entry price from message"""
         try:
-            # Multiple patterns for second price detection
-            patterns = [
-                (r'\b\d+\.?\d*///(\d+\.?\d*)', 1),  # pattern///second_price
-                (r'@\d+\.?\d*\s*-\s*(\d+\.?\d*)', 1),  # @price - second_price
-                (r'2(?:nd)?\s+limit\s*@\s*(\d+\.?\d*)', 1),  # 2nd limit @ price
-                (r'\b\d+\.?\d*__+(\d+\.?\d*)', 1),  # price__+second_price
-                (r'@\s*\d+\.?\d*\s*-\s*(\d+\.?\d*)', 1),  # @ price - second
-                (r'@\s*\d+\.?\d*\s*-\s*(\d+\.?\d*)|:\s*\d+\.?\d*\s*-\s*(\d+\.?\d*)', [1, 2]),  # Alternative
-                (r'\b\d+\.?\d*\s*-\s*(\d+\.?\d*)', 1),  # price - second
-                (r'\b\d+\b\s*و\s*(\d+)\s*فروش', 1),  # Persian: number and sell
-                (r'\b\d+\b\s*و\s*(\d+)\s*خرید', 1),  # Persian: number and buy
-                (r'\b\d+\.?\d*/(\d+\.?\d*)', 1),  # price/second
-                (r'=\s*(\d+\.?\d*)', 1),  # = price
-                (r'(?:\d+\.\d+)[^\d]+(\d+\.\d+)', 1),  # price followed by another price
-            ]
-
-            for pattern, group in patterns:
-                match = re.search(pattern, message)
+            # Try pre-compiled patterns for second price detection
+            for pattern, group in PriceExtractor._second_price_patterns:
+                match = pattern.search(message)
                 if match:
                     if isinstance(group, list):
                         return float(match.group(group[0]) or match.group(group[1]))

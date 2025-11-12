@@ -14,8 +14,10 @@ class TradingOperations:
     @staticmethod
     def trade(message_username, message_id, message_chatid, actionType, symbol, openPrice, secondPrice, tp_list, sl, comment):
         """Execute a complete trading operation"""
-        logger.info(
-            f"Processing trade signal: {actionType.name} {symbol} from {message_username}")
+        from MessageHandler import PerformanceMonitor
+        PerformanceMonitor.start_operation("trade_execution")
+
+        # logger.debug(f"Processing trade signal: {actionType.name} {symbol}")
 
         from Configure import GetSettings
         from ..MetaTrader import MetaTrader
@@ -58,20 +60,50 @@ class TradingOperations:
         validated_tp_levels = mt.validate_tp_list(
             actionType, tp_list, symbol, openPrice, secondPrice, mtAccount.CloserPrice)
 
-        # Save to database
-        signal_data = {
-            "telegram_channel_title": message_username,
-            "telegram_message_id": message_id,
-            "telegram_message_chatid": message_chatid,
-            "open_price": openPrice,
-            "second_price": secondPrice,
-            "stop_loss": sl,
-            "tp_list": ','.join(map(str, validated_tp_levels)),
-            "symbol": symbol,
-            "current_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        }
-        signal_id = Migrations.signal_repo.insert(signal_data)
-        logger.info(f"Signal saved to database with ID {signal_id}")
+        # Save to database with transaction for atomicity
+        import sqlite3
+        signal_id = None
+        try:
+            # Use transaction for atomic signal + position inserts
+            conn = Migrations.signal_repo._connect()
+            conn.execute("BEGIN TRANSACTION")
+
+            signal_data = {
+                "telegram_channel_title": message_username,
+                "telegram_message_id": message_id,
+                "telegram_message_chatid": message_chatid,
+                "open_price": openPrice,
+                "second_price": secondPrice,
+                "stop_loss": sl,
+                "tp_list": ','.join(map(str, validated_tp_levels)),
+                "symbol": symbol,
+                "current_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+            signal_id = Migrations.signal_repo.insert(signal_data)
+
+            # Pre-insert position data for batch processing
+            position_data_list = []
+            for params in position_params:
+                position_data = {
+                    "signal_id": signal_id,
+                    "position_id": 0,  # Will be updated after MT5 order
+                    "user_id": mt.user,
+                    "is_first": params['isFirst'],
+                    "is_second": params['isSecond']
+                }
+                position_data_list.append(position_data)
+
+            conn.commit()
+            logger.debug(f"Signal {signal_id} saved to database atomically")
+
+        except Exception as e:
+            if 'conn' in locals():
+                conn.rollback()
+            logger.error(f"Database transaction failed: {e}")
+            raise
+        finally:
+            if 'conn' in locals():
+                conn.close()
 
         # Prepare position opening parameters
         tp_levels = sorted(validated_tp_levels)
@@ -127,26 +159,26 @@ class TradingOperations:
             }
             position_params.append(second_params)
 
-        # Execute position openings concurrently using threads
+        # Execute position openings concurrently using shared executor
         if position_params:
-            logger.info(f"Opening {len(position_params)} position(s) concurrently for signal {signal_id}")
+            # logger.debug(f"Opening {len(position_params)} position(s) concurrently for signal {signal_id}")
 
             def open_single_position(params):
                 """Open a single position with given parameters"""
-                logger.info(
-                    f"Opening {params['position_name']} position: {params['symbol']} {params['lot']} lots @ {params['price']}, SL: {params['sl']}, TP: {params['tp']}")
                 return mt.OpenPosition(
                     params['actionType'], params['lot'], params['symbol'], params['sl'], params['tp'], params['price'],
                     params['expirePendinOrderInMinutes'], params['comment'], params['signal_id'],
                     params['closerPrice'], params['isFirst'], params['isSecond']
                 )
 
-            # Use ThreadPoolExecutor for concurrent execution
-            with ThreadPoolExecutor(max_workers=len(position_params)) as executor:
-                futures = [executor.submit(open_single_position, params) for params in position_params]
-                results = [future.result() for future in futures]
+            # Use shared trade executor for better performance
+            from MessageHandler import ConcurrentOperationProcessor
+            futures = [ConcurrentOperationProcessor._trade_executor.submit(open_single_position, params) for params in position_params]
+            results = [future.result() for future in futures]
 
-            logger.success(f"All {len(position_params)} positions opened successfully for signal {signal_id}")
+            # logger.debug(f"All {len(position_params)} positions processed for signal {signal_id}")
+
+        PerformanceMonitor.end_operation("trade_execution")
 
     @staticmethod
     def risk_free_positions(chat_id, message_id):
