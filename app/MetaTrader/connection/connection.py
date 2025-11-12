@@ -13,29 +13,27 @@ class ConnectionManager:
     @staticmethod
     def get_mt5_time():
         """Get current MT5 server time"""
-        cfg = Configure.GetSettings()
-        mtAccount = AccountConfig(cfg["MetaTrader"])
-        mt = MetaTrader(
-            path=mtAccount.path,
-            server=mtAccount.server,
-            user=mtAccount.username,
-            password=mtAccount.password
-        )
+        try:
+            # Check if MT5 is initialized
+            if mt5.terminal_info() is None:
+                return None
 
-        if mt.Login() == False:
+            # Use a common symbol to get time
+            symbol = "XAUUSD"
+            tick = mt5.symbol_info_tick(symbol)
+            if tick is None:
+                # Try EURUSD as fallback
+                tick = mt5.symbol_info_tick("EURUSD")
+                if tick is None:
+                    return None
+
+            server_time = tick.time
+            server_time_utc = datetime.utcfromtimestamp(
+                server_time).replace(tzinfo=pytz.utc)
+            return server_time_utc
+        except Exception as e:
+            logger.error(f"Error getting MT5 time: {e}")
             return None
-
-        symbol = mt.validate_symbol("XAUUSD")
-
-        tick = mt5.symbol_info_tick(symbol)
-        if tick is None:
-            print(f"symbol_info_tick() failed for {symbol}")
-            return None
-
-        server_time = tick.time
-        server_time_utc = datetime.utcfromtimestamp(
-            server_time).replace(tzinfo=pytz.utc)
-        return server_time_utc
 
     @staticmethod
     def get_symbols():
@@ -151,6 +149,3 @@ class AccountConfig:
         self.expirePendinOrderInMinutes = account_dict.get(
             'expirePendinOrderInMinutes')
 
-
-# Import here to avoid circular imports
-from MetaTrader import MetaTrader
