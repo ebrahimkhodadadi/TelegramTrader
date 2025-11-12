@@ -56,10 +56,10 @@ class SettingsManager:
         env = os.getenv("ENV", "").lower()
 
         if env == "development":
-            root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+            root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
             return os.path.join(root_dir, "config", "development.json")
         elif env == "production":
-            root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+            root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
             return os.path.join(root_dir, "config", "production.json")
         else:
             # Default to settings.json in current working directory
