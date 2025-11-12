@@ -65,7 +65,7 @@ class LoggerManager:
             format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <cyan>{extra[mt5_time]}</cyan> | <level>{level: <8}</level> | <level>{message}</level>",
             filter=LoggerManager.add_mt5_time,
             enqueue=True,
-            level="INFO"
+            level="DEBUG"
         )
 
         # File handler with rotation and retention

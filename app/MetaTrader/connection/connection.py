@@ -39,20 +39,12 @@ class ConnectionManager:
     def get_symbols():
         """Retrieve all available symbols from MT5"""
         try:
-            cfg = Configure.GetSettings()
-            account = AccountConfig(cfg["MetaTrader"])
-            mt = MetaTrader(
-                path=account.path,
-                server=account.server,
-                user=account.username,
-                password=account.password
-            )
-            if not mt.Login():
-                logger.error(f"Failed to login to {mt.server}")
+            # Check if MT5 is initialized
+            if mt5.terminal_info() is None:
                 return None
 
             symbols = mt5.symbols_get()
-            return {symbol.name for symbol in symbols}
+            return {symbol.name for symbol in symbols} if symbols else None
         except Exception as ex:
             logger.error(f"Unexpected error in get symbols: {ex}")
             return None

@@ -1,7 +1,12 @@
 from datetime import datetime
 from loguru import logger
+from typing import TYPE_CHECKING
 import Database
 from Database import Migrations
+
+if TYPE_CHECKING:
+    from ..connection import AccountConfig
+    from ..MetaTrader import MetaTrader
 
 
 class TradingOperations:
@@ -13,8 +18,6 @@ class TradingOperations:
         logger.info(f"Processing trade signal: {actionType.name} {symbol} from {message_username}")
 
         from Configure import GetSettings
-        from ..connection import AccountConfig
-        from ..MetaTrader import MetaTrader
 
         cfg = GetSettings()
         mtAccount = AccountConfig(cfg["MetaTrader"])
@@ -98,8 +101,6 @@ class TradingOperations:
         logger.info(f"Applying risk-free strategy for chat {chat_id}, message {message_id}")
 
         from Configure import GetSettings
-        from ..connection import AccountConfig
-        from ..MetaTrader import MetaTrader
 
         cfg = GetSettings()
         mtAccount = AccountConfig(cfg["MetaTrader"])
@@ -142,8 +143,6 @@ class TradingOperations:
         logger.info(f"Updating stop loss to {stop_loss} for last signal in chat {chat_id}")
 
         from Configure import GetSettings
-        from ..connection import AccountConfig
-        from ..MetaTrader import MetaTrader
 
         cfg = GetSettings()
         account = AccountConfig(cfg["MetaTrader"])
@@ -177,8 +176,6 @@ class TradingOperations:
         logger.info(f"Updating signal {signal_id} - SL: {stopLoss}, TP: {takeProfits}")
 
         from Configure import GetSettings
-        from ..connection import AccountConfig
-        from ..MetaTrader import MetaTrader
 
         cfg = GetSettings()
         account = AccountConfig(cfg["MetaTrader"])
