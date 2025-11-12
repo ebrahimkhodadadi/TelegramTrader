@@ -219,7 +219,7 @@ class TelegramClientManager:
             text = event.raw_text.encode('utf-8', errors='ignore').decode('utf-8')
 
             # Process the message
-            logger.debug(f"Processing {message_type.name} message from {username or chat_id}")
+            # logger.debug(f"Processing {message_type.name} message from {username or chat_id}")
             Handle(message_type, text, message_link, username, message_id, chat_id)
 
         except Exception as e:

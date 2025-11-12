@@ -55,7 +55,7 @@ class MessageHandler:
             chat_id: Telegram chat ID
         """
         try:
-            logger.debug(f"Processing {message_type.name} message from chat {chat_id}")
+            # logger.debug(f"Processing {message_type.name} message from chat {chat_id}")
 
             # Handle special edit commands in message text
             MessageHandler._handle_last_edit(chat_id, text)
@@ -136,19 +136,19 @@ class MessageHandler:
     def _validate_signal_data(action_type, symbol: str, first_price: float, stop_loss: float) -> bool:
         """Validate that signal has all required data"""
         if action_type is None:
-            logger.debug("Signal rejected: no action type")
+            # logger.debug("Signal rejected: no action type")
             return False
 
         if first_price is None:
-            logger.debug("Signal rejected: no entry price")
+            # logger.debug("Signal rejected: no entry price")
             return False
 
         if stop_loss is None:
-            logger.debug("Signal rejected: no stop loss")
+            # logger.debug("Signal rejected: no stop loss")
             return False
 
         if not symbol:
-            logger.debug("Signal rejected: no symbol")
+            # logger.debug("Signal rejected: no symbol")
             return False
 
         return True
