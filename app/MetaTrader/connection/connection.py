@@ -39,12 +39,27 @@ class ConnectionManager:
     def get_symbols():
         """Retrieve all available symbols from MT5"""
         try:
-            # Check if MT5 is initialized
-            if mt5.terminal_info() is None:
-                return None
+            # Check if MT5 is initialized and logged in
+            terminal_info = mt5.terminal_info()
+            if terminal_info is None:
+                # logger.warning("MT5 terminal not initialized, attempting to initialize...")
+                # Try to initialize without login for basic operations
+                if not mt5.initialize():
+                    logger.error("Failed to initialize MT5 terminal")
+                    return None
+
+            # Check if we're logged in (connected to account)
+            account_info = mt5.account_info()
+            if account_info is None:
+                logger.warning("Not logged into MT5 account, symbols may not be available")
+                # Still try to get symbols, some basic symbols might be available
 
             symbols = mt5.symbols_get()
-            return {symbol.name for symbol in symbols} if symbols else None
+            if symbols is None:
+                logger.error("Failed to retrieve symbols from MT5")
+                return None
+
+            return {symbol.name for symbol in symbols}
         except Exception as ex:
             logger.error(f"Unexpected error in get symbols: {ex}")
             return None
