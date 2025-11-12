@@ -142,6 +142,11 @@ class TelegramClientManager:
                 chat_id = clear_chat_id(event.chat_id)
                 message_id = event.message.id
 
+                # Check if message has content
+                if not event.message.message:
+                    # logger.debug(f"Edited message {message_id} has no content, skipping")
+                    return
+
                 # Clean and normalize text
                 text = event.message.message.lower()
                 text = text.encode('utf-8', errors='ignore').decode('utf-8')
