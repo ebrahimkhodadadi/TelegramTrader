@@ -12,6 +12,8 @@ Features:
     - Comprehensive error handling and logging
 """
 
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Optional, List, Any
 from datetime import datetime
 from loguru import logger
@@ -29,6 +31,90 @@ class MessageType(Enum):
     New = 1
     Edited = 2
     Deleted = 3
+
+
+class ConcurrentOperationProcessor:
+    """Handles concurrent processing of trading operations with thread safety"""
+
+    _global_lock = threading.Lock()  # Global lock for critical operations
+    _signal_locks = {}  # Per-signal locks to prevent concurrent operations on same signal
+    _signal_locks_lock = threading.Lock()  # Lock for managing signal locks
+    _executor = ThreadPoolExecutor(max_workers=3, thread_name_prefix="TradingOps")
+    _rate_limiter = threading.Semaphore(2)  # Limit concurrent MT5 operations
+
+    @staticmethod
+    def _get_signal_lock(signal_id):
+        """Get or create a lock for a specific signal"""
+        with ConcurrentOperationProcessor._signal_locks_lock:
+            if signal_id not in ConcurrentOperationProcessor._signal_locks:
+                ConcurrentOperationProcessor._signal_locks[signal_id] = threading.Lock()
+            return ConcurrentOperationProcessor._signal_locks[signal_id]
+
+    @staticmethod
+    def submit_operation(operation_func, *args, **kwargs):
+        """Submit an operation for concurrent execution with proper synchronization"""
+        def safe_operation():
+            signal_id = None
+
+            # Extract signal_id from args/kwargs for per-signal locking
+            if args and len(args) > 0:
+                # Try to identify signal_id from common patterns
+                if operation_func.__name__ in ['Delete_signal', 'Close_half_signal', 'Update_signal']:
+                    signal_id = args[0]  # First arg is usually signal_id
+                elif operation_func.__name__ == 'Update_last_signal':
+                    # For Update_last_signal, we need to get signal_id from database
+                    chat_id = args[0]
+                    from Database import Migrations
+                    positions = Migrations.get_last_signal_positions_by_chatid(chat_id)
+                    if positions:
+                        signal = Migrations.get_signal_by_positionId(positions[0])
+                        if signal:
+                            signal_id = signal['id']
+
+            locks_to_acquire = []
+            semaphore_acquired = False
+
+            try:
+                # Acquire rate limiter semaphore
+                ConcurrentOperationProcessor._rate_limiter.acquire()
+                semaphore_acquired = True
+
+                # Acquire signal-specific lock if applicable
+                signal_lock = None
+                if signal_id is not None:
+                    signal_lock = ConcurrentOperationProcessor._get_signal_lock(signal_id)
+                    signal_lock.acquire()
+                    locks_to_acquire.append(signal_lock)
+
+                # Acquire global lock for database operations
+                if operation_func.__name__ in ['Delete_signal', 'Update_signal', 'Update_last_signal']:
+                    ConcurrentOperationProcessor._global_lock.acquire()
+                    locks_to_acquire.append(ConcurrentOperationProcessor._global_lock)
+
+                # Execute the operation
+                return operation_func(*args, **kwargs)
+
+            except Exception as e:
+                logger.error(f"Error in concurrent operation {operation_func.__name__}: {e}")
+                return None
+            finally:
+                # Release locks in reverse order
+                for lock in reversed(locks_to_acquire):
+                    lock.release()
+
+                # Release semaphore
+                if semaphore_acquired:
+                    ConcurrentOperationProcessor._rate_limiter.release()
+
+        return ConcurrentOperationProcessor._executor.submit(safe_operation)
+
+    @staticmethod
+    def shutdown():
+        """Shutdown the executor and cleanup locks"""
+        ConcurrentOperationProcessor._executor.shutdown(wait=True)
+        # Clear signal locks
+        with ConcurrentOperationProcessor._signal_locks_lock:
+            ConcurrentOperationProcessor._signal_locks.clear()
 
 
 class MessageHandler:
@@ -160,8 +246,8 @@ class MessageHandler:
             if any(keyword in text.lower() for keyword in MessageHandler.EDIT_KEYWORDS):
                 stop_loss = extract_price(text)
                 if stop_loss is not None:
-                    logger.info(f"Processing edit command for chat {chat_id}")
-                    Update_last_signal(chat_id, stop_loss)
+                    logger.info(f"Submitting concurrent last signal update for chat {chat_id}")
+                    ConcurrentOperationProcessor.submit_operation(Update_last_signal, chat_id, stop_loss)
         except Exception as e:
             logger.error(f"Error handling last edit: {e}")
 
@@ -182,8 +268,8 @@ class MessageHandler:
                 logger.debug(f"No signal found for chat {chat_id}, message {message_id}")
                 return
 
-            logger.info(f"Updating signal {signal['id']} with new stop loss: {stop_loss}")
-            Update_signal(signal["id"], stop_loss)
+            logger.info(f"Submitting concurrent update operation for signal {signal['id']} with new stop loss: {stop_loss}")
+            ConcurrentOperationProcessor.submit_operation(Update_signal, signal["id"], stop_loss)
 
         except Exception as e:
             logger.error(f"Error handling parent edit: {e}")
@@ -223,12 +309,13 @@ class MessageHandler:
                 logger.debug(f"No signal found for delete command")
                 return
 
+            # Submit operation for concurrent processing
             if 'half' in text.lower():
-                logger.info(f"Closing half position for signal {signal['id']}")
-                Close_half_signal(signal["id"])
+                logger.info(f"Submitting concurrent half-close operation for signal {signal['id']}")
+                ConcurrentOperationProcessor.submit_operation(Close_half_signal, signal["id"])
             else:
-                logger.info(f"Deleting signal {signal['id']}")
-                Delete_signal(signal["id"])
+                logger.info(f"Submitting concurrent delete operation for signal {signal['id']}")
+                ConcurrentOperationProcessor.submit_operation(Delete_signal, signal["id"])
 
         except Exception as e:
             logger.error(f"Error handling parent delete: {e}")
@@ -242,8 +329,8 @@ class MessageHandler:
                 logger.debug(f"No signal found for deleted message {message_id}")
                 return
 
-            logger.info(f"Deleting signal {signal['id']} due to message deletion")
-            Delete_signal(signal["id"])
+            logger.info(f"Submitting concurrent delete operation for signal {signal['id']} due to message deletion")
+            ConcurrentOperationProcessor.submit_operation(Delete_signal, signal["id"])
 
         except Exception as e:
             logger.error(f"Error handling message deletion: {e}")

@@ -1,3 +1,6 @@
+import asyncio
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from loguru import logger
 import Database
@@ -70,31 +73,80 @@ class TradingOperations:
         signal_id = Migrations.signal_repo.insert(signal_data)
         logger.info(f"Signal saved to database with ID {signal_id}")
 
-        # Open first position
+        # Prepare position opening parameters
         tp_levels = sorted(validated_tp_levels)
         if actionType == 0:  # BUY
             tp = max(tp_levels)
         else:  # SELL
             tp = min(tp_levels)
 
-        lot = mt.calculate_lot_size_with_prices(
+        # First position parameters
+        first_lot = mt.calculate_lot_size_with_prices(
             symbol, mtAccount.lot, openPrice, sl, mtAccount.account_size)
 
-        logger.info(
-            f"Opening first position: {symbol} {lot} lots @ {openPrice}, SL: {sl}, TP: {tp}")
-        mt.OpenPosition(actionType, lot, symbol, sl, tp, openPrice, mtAccount.expirePendinOrderInMinutes,
-                        comment, signal_id, mtAccount.CloserPrice, isFirst=True)
+        position_params = []
 
-        # Open second position if high risk mode enabled
+        # Add first position parameters
+        first_params = {
+            'actionType': actionType,
+            'lot': first_lot,
+            'symbol': symbol,
+            'sl': sl,
+            'tp': tp,
+            'price': openPrice,
+            'expirePendinOrderInMinutes': mtAccount.expirePendinOrderInMinutes,
+            'comment': comment,
+            'signal_id': signal_id,
+            'closerPrice': mtAccount.CloserPrice,
+            'isFirst': True,
+            'isSecond': False,
+            'position_name': 'first'
+        }
+        position_params.append(first_params)
+
+        # Add second position parameters if high risk mode enabled
         if secondPrice is not None and secondPrice != 0 and mtAccount.HighRisk == True:
-            lot = mt.calculate_lot_size_with_prices(
+            second_lot = mt.calculate_lot_size_with_prices(
                 symbol, mtAccount.lot, secondPrice, sl, mtAccount.account_size)
             secondPrice = mt.validate(actionType, secondPrice, symbol)
 
-            logger.info(
-                f"Opening second position: {symbol} {lot} lots @ {secondPrice}, SL: {sl}, TP: {tp}")
-            mt.OpenPosition(actionType, lot, symbol, sl, tp, secondPrice, mtAccount.expirePendinOrderInMinutes,
-                            comment, signal_id, mtAccount.CloserPrice, isSecond=True)
+            second_params = {
+                'actionType': actionType,
+                'lot': second_lot,
+                'symbol': symbol,
+                'sl': sl,
+                'tp': tp,
+                'price': secondPrice,
+                'expirePendinOrderInMinutes': mtAccount.expirePendinOrderInMinutes,
+                'comment': comment,
+                'signal_id': signal_id,
+                'closerPrice': mtAccount.CloserPrice,
+                'isFirst': False,
+                'isSecond': True,
+                'position_name': 'second'
+            }
+            position_params.append(second_params)
+
+        # Execute position openings concurrently using threads
+        if position_params:
+            logger.info(f"Opening {len(position_params)} position(s) concurrently for signal {signal_id}")
+
+            def open_single_position(params):
+                """Open a single position with given parameters"""
+                logger.info(
+                    f"Opening {params['position_name']} position: {params['symbol']} {params['lot']} lots @ {params['price']}, SL: {params['sl']}, TP: {params['tp']}")
+                return mt.OpenPosition(
+                    params['actionType'], params['lot'], params['symbol'], params['sl'], params['tp'], params['price'],
+                    params['expirePendinOrderInMinutes'], params['comment'], params['signal_id'],
+                    params['closerPrice'], params['isFirst'], params['isSecond']
+                )
+
+            # Use ThreadPoolExecutor for concurrent execution
+            with ThreadPoolExecutor(max_workers=len(position_params)) as executor:
+                futures = [executor.submit(open_single_position, params) for params in position_params]
+                results = [future.result() for future in futures]
+
+            logger.success(f"All {len(position_params)} positions opened successfully for signal {signal_id}")
 
     @staticmethod
     def risk_free_positions(chat_id, message_id):
