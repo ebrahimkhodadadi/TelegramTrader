@@ -60,52 +60,7 @@ class TradingOperations:
         validated_tp_levels = mt.validate_tp_list(
             actionType, tp_list, symbol, openPrice, secondPrice, mtAccount.CloserPrice)
 
-        # Save to database with transaction for atomicity
-        import sqlite3
-        signal_id = None
-        try:
-            # Use transaction for atomic signal + position inserts
-            conn = Migrations.signal_repo._connect()
-            conn.execute("BEGIN TRANSACTION")
-
-            signal_data = {
-                "telegram_channel_title": message_username,
-                "telegram_message_id": message_id,
-                "telegram_message_chatid": message_chatid,
-                "open_price": openPrice,
-                "second_price": secondPrice,
-                "stop_loss": sl,
-                "tp_list": ','.join(map(str, validated_tp_levels)),
-                "symbol": symbol,
-                "current_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            }
-            signal_id = Migrations.signal_repo.insert(signal_data)
-
-            # Pre-insert position data for batch processing
-            position_data_list = []
-            for params in position_params:
-                position_data = {
-                    "signal_id": signal_id,
-                    "position_id": 0,  # Will be updated after MT5 order
-                    "user_id": mt.user,
-                    "is_first": params['isFirst'],
-                    "is_second": params['isSecond']
-                }
-                position_data_list.append(position_data)
-
-            conn.commit()
-            logger.debug(f"Signal {signal_id} saved to database atomically")
-
-        except Exception as e:
-            if 'conn' in locals():
-                conn.rollback()
-            logger.error(f"Database transaction failed: {e}")
-            raise
-        finally:
-            if 'conn' in locals():
-                conn.close()
-
-        # Prepare position opening parameters
+        # Prepare position opening parameters first
         tp_levels = sorted(validated_tp_levels)
         if actionType == 0:  # BUY
             tp = max(tp_levels)
@@ -128,7 +83,7 @@ class TradingOperations:
             'price': openPrice,
             'expirePendinOrderInMinutes': mtAccount.expirePendinOrderInMinutes,
             'comment': comment,
-            'signal_id': signal_id,
+            'signal_id': None,  # Will be set after signal creation
             'closerPrice': mtAccount.CloserPrice,
             'isFirst': True,
             'isSecond': False,
@@ -151,13 +106,50 @@ class TradingOperations:
                 'price': secondPrice,
                 'expirePendinOrderInMinutes': mtAccount.expirePendinOrderInMinutes,
                 'comment': comment,
-                'signal_id': signal_id,
+                'signal_id': None,  # Will be set after signal creation
                 'closerPrice': mtAccount.CloserPrice,
                 'isFirst': False,
                 'isSecond': True,
                 'position_name': 'second'
             }
             position_params.append(second_params)
+
+        # Save to database with transaction for atomicity
+        import sqlite3
+        signal_id = None
+        try:
+            # Use transaction for atomic signal + position inserts
+            conn = Migrations.signal_repo._connect()
+            conn.execute("BEGIN TRANSACTION")
+
+            signal_data = {
+                "telegram_channel_title": message_username,
+                "telegram_message_id": message_id,
+                "telegram_message_chatid": message_chatid,
+                "open_price": openPrice,
+                "second_price": secondPrice,
+                "stop_loss": sl,
+                "tp_list": ','.join(map(str, validated_tp_levels)),
+                "symbol": symbol,
+                "current_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+            signal_id = Migrations.signal_repo.insert(signal_data)
+
+            # Update signal_id in position params
+            for params in position_params:
+                params['signal_id'] = signal_id
+
+            conn.commit()
+            logger.debug(f"Signal {signal_id} saved to database atomically")
+
+        except Exception as e:
+            if 'conn' in locals():
+                conn.rollback()
+            logger.error(f"Database transaction failed: {e}")
+            raise
+        finally:
+            if 'conn' in locals():
+                conn.close()
 
         # Execute position openings concurrently using shared executor
         if position_params:
