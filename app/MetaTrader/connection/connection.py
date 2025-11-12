@@ -161,6 +161,7 @@ class AccountConfig:
         self.CloserPrice = account_dict.get('CloserPrice')
         self.SaveProfits = account_dict.get('SaveProfits')
         self.account_size = account_dict.get('AccountSize')
+        self.close_positions_on_trail = account_dict.get('ClosePositionsOnTrail')
         self.expirePendinOrderInMinutes = account_dict.get(
             'expirePendinOrderInMinutes')
 

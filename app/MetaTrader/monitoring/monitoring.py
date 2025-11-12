@@ -14,14 +14,15 @@ class MonitoringManager:
         self.save_profits = save_profits
         self.close_positions_on_trail = close_positions_on_trail
 
-    async def monitor_all_accounts(self):
+    @staticmethod
+    async def monitor_all_accounts():
         """Monitor all accounts concurrently"""
         from Configure import GetSettings
-        cfg = GetSettings()
-        account = self.connection.__class__.MetaTraderAccount(cfg["MetaTrader"])
+        from ..connection import AccountConfig
+        from ..MetaTrader import MetaTrader
 
-        # Get close positions on trail setting (default to True for backward compatibility)
-        close_positions_on_trail = cfg.get("MetaTrader", {}).get("ClosePositionsOnTrail", True)
+        cfg = GetSettings()
+        account = AccountConfig(cfg["MetaTrader"])
 
         # Create tasks for all accounts
         tasks = []
@@ -31,7 +32,7 @@ class MonitoringManager:
             user=account.username,
             password=account.password,
             saveProfits=account.SaveProfits,
-            closePositionsOnTrail=close_positions_on_trail,
+            closePositionsOnTrail=account.close_positions_on_trail,
         )
         tasks.append(mt.monitor_account())
 
@@ -185,7 +186,3 @@ class MonitoringManager:
 
                 logger.info(f"Cancelling pending order {position_id} - first position already active")
                 self.position_manager.close_position(position_id)
-
-
-# Import here to avoid circular imports
-from MetaTrader import MetaTrader
