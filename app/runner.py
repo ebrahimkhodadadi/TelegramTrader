@@ -90,10 +90,10 @@ class ApplicationRunner:
 
     async def _load_configuration(self) -> None:
         """Load and validate application configuration"""
-        logger.info("Loading configuration...")
+        # logger.info("Loading configuration...")
         try:
             self.settings = GetSettings()
-            logger.success("Configuration loaded successfully")
+            # logger.success("Configuration loaded successfully")
         except Exception as e:
             logger.critical(f"Failed to load configuration: {e}")
             raise
