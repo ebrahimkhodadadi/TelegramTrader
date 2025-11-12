@@ -12,7 +12,7 @@ class SymbolDetector:
     @staticmethod
     def read_symbol_list():
         """Read available symbols from JSON file"""
-        root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+        root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
         json_file_path = os.path.join(root_dir, "data", "Symbols.json")
 
         try:

@@ -246,5 +246,5 @@ class TradingOperations:
 
 
 # Import here to avoid circular imports
-from MetaTrader import MetaTrader
-from MetaTrader.connection import AccountConfig
+from ..MetaTrader import MetaTrader
+from ..connection import AccountConfig
