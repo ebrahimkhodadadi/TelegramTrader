@@ -3,6 +3,7 @@ from loguru import logger
 import Database
 from Database import Migrations
 from ..connection import AccountConfig
+from ..MetaTrader import MetaTrader
 
 
 class TradingOperations:
