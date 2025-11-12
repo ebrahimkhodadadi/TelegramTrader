@@ -1,0 +1,186 @@
+import asyncio
+import MetaTrader5 as mt5
+from loguru import logger
+import Database
+
+
+class MonitoringManager:
+    """Handles position monitoring, trailing stops, and automated management"""
+
+    def __init__(self, connection_manager, market_data, position_manager, save_profits=None):
+        self.connection = connection_manager
+        self.market_data = market_data
+        self.position_manager = position_manager
+        self.save_profits = save_profits
+
+    async def monitor_all_accounts(self):
+        """Monitor all accounts concurrently"""
+        from Configure import GetSettings
+        cfg = GetSettings()
+        account = self.connection.__class__.MetaTraderAccount(cfg["MetaTrader"])
+
+        # Create tasks for all accounts
+        tasks = []
+        mt = MetaTrader(
+            path=account.path,
+            server=account.server,
+            user=account.username,
+            password=account.password,
+            saveProfits=account.SaveProfits,
+        )
+        tasks.append(mt.monitor_account())
+
+        await asyncio.gather(*tasks)
+
+    async def monitor_account(self):
+        """Main async monitoring loop for a single account"""
+        logger.info(f"Starting position monitoring for account {self.connection.user}")
+
+        while True:  # Keep trying to reconnect
+            try:
+                # Initial login/reconnect
+                # if mt5.terminal_info() is None:
+                if not self.connection.login():
+                    logger.error(f"Failed to login to {self.connection.server}, retrying in 5 seconds...")
+                    await asyncio.sleep(5)
+                    continue
+
+                # Main monitoring loop
+                while True:
+                    # Check connection status periodically
+                    # if mt5.terminal_info() is None:
+                    #     logger.warning(f"Connection lost to {self.connection.server}, reconnecting...")
+                    #     break  # Break inner loop to reconnect
+
+                    # Get and process positions
+                    self.trailing()
+                    self.manage_positions()
+
+                    # Async sleep to maintain event loop
+                    await asyncio.sleep(1)
+
+            except Exception as e:
+                logger.error(f"Monitoring error on {self.connection.server}: {e}")
+                await asyncio.sleep(5)
+
+    def trailing(self):
+        """Implement trailing stop logic"""
+        positions = self.market_data.get_open_positions()
+
+        for position in positions:
+            signal = Database.Migrations.get_signal_by_positionId(
+                position.ticket)
+            if signal is None:
+                continue
+
+            # get entry price
+            if signal["second_price"] is not None:
+                signal_position = Database.Migrations.get_position_by_signal_id(
+                    signal["id"], second=True)
+                if signal_position and signal_position is not None:
+                    entry_price = signal["second_price"]
+            else:
+                signal_position = Database.Migrations.get_position_by_signal_id(
+                    signal["id"], first=True)
+                if signal_position and signal_position is not None:
+                    entry_price = signal["open_price"]
+            if signal_position is not None:
+                pos = self.market_data.get_position_or_order(
+                    ticket_id=signal_position["position_id"])
+                if pos is not None:
+                    entry_price = pos.price_open
+
+            ticket = position.ticket
+            lots = position.volume
+            stop_loss = position.sl
+            trade_type = position.type
+            symbol = position.symbol
+
+            tp_levels = Database.Migrations.get_tp_levels(ticket)
+            if not tp_levels or len(tp_levels) == 1:
+                continue
+
+            current_price = self.market_data.get_current_price(symbol)
+            if not current_price:
+                continue
+
+            tp_levels_buy = sorted(map(float, tp_levels))
+            tp_levels_sell = sorted(map(float, tp_levels), reverse=True)
+
+            # Check if price reached take profit level
+            if trade_type == 0:  # Buy position
+                for i, tp in enumerate(tp_levels_buy):
+                    # If price reached TP level and position not yet partially closed
+                    if current_price >= tp and stop_loss < tp:
+                        logger.info(f"Trailing stop triggered for BUY position {ticket} at TP{i+1} ({tp})")
+
+                        # Move stop loss to previous TP level or entry price
+                        new_stop_loss = tp_levels_buy[i - 1] if i > 0 else entry_price
+                        if not self.position_manager.update_stop_loss(ticket, new_stop_loss):
+                            continue
+
+                        # Partially close position for profit taking
+                        self.position_manager.save_profit_position(ticket, i, self.save_profits)
+            elif trade_type == 1:  # Sell position
+                for i, tp in enumerate(tp_levels_sell):
+                    # If price reached TP level and position not yet partially closed
+                    if current_price <= tp and stop_loss > tp:
+                        logger.info(f"Trailing stop triggered for SELL position {ticket} at TP{i+1} ({tp})")
+
+                        # Move stop loss to previous TP level or entry price
+                        new_stop_loss = tp_levels_sell[i - 1] if i > 0 else entry_price
+                        if not self.position_manager.update_stop_loss(ticket, new_stop_loss):
+                            continue
+
+                        # Partially close position for profit taking
+                        self.position_manager.save_profit_position(ticket, i, self.save_profits)
+
+    def manage_positions(self):
+        """Manage pending orders and position execution"""
+        pending_orders = self.market_data.get_pending_orders()
+
+        for order in pending_orders:
+            position_id = order.ticket
+            position_type = order.type  # Buy = 0, Sell = 1
+            symbol = order.symbol
+
+            tp_levels = Database.Migrations.get_tp_levels(position_id)
+            if tp_levels is None:
+                continue
+
+            tp_levels_buy = sorted(map(float, tp_levels))
+            tp_levels_sell = sorted(map(float, tp_levels), reverse=True)
+
+            current_price = self.market_data.get_current_price(symbol)
+
+            # Check if pending order should be activated or cancelled
+            if ((position_type == mt5.ORDER_TYPE_BUY_STOP or position_type == mt5.ORDER_TYPE_BUY_LIMIT) and current_price >= tp_levels_buy[0]) or \
+               ((position_type == mt5.ORDER_TYPE_SELL_LIMIT or position_type == mt5.ORDER_TYPE_SELL_STOP) and current_price <= tp_levels_sell[0]):
+
+                # Check if one of the positions has already been executed
+                positions = Database.Migrations.get_signal_positions_by_positionId(position_id)
+                signal = Database.Migrations.get_signal_by_positionId(position_id)
+
+                if len(positions) <= 1:
+                    continue
+
+                # Cancel pending order if no second entry price or position already executed
+                if signal['second_price'] is None or signal['second_price'] == 0:
+                    logger.info(f"Cancelling pending order {position_id} - no second entry needed")
+                    self.position_manager.close_position(position_id)
+                    continue
+
+                # Check if first position exists
+                position = self.market_data.get_open_positions(positions[0]['position_id'])
+                if position is None and len(positions) == 2:
+                    position = self.market_data.get_open_positions(positions[1]['position_id'])
+
+                if position is None:
+                    continue
+
+                logger.info(f"Cancelling pending order {position_id} - first position already active")
+                self.position_manager.close_position(position_id)
+
+
+# Import here to avoid circular imports
+from MetaTrader import MetaTrader
