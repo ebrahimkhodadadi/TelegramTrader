@@ -7,17 +7,21 @@ import Database
 class MonitoringManager:
     """Handles position monitoring, trailing stops, and automated management"""
 
-    def __init__(self, connection_manager, market_data, position_manager, save_profits=None):
+    def __init__(self, connection_manager, market_data, position_manager, save_profits=None, close_positions_on_trail=True):
         self.connection = connection_manager
         self.market_data = market_data
         self.position_manager = position_manager
         self.save_profits = save_profits
+        self.close_positions_on_trail = close_positions_on_trail
 
     async def monitor_all_accounts(self):
         """Monitor all accounts concurrently"""
         from Configure import GetSettings
         cfg = GetSettings()
         account = self.connection.__class__.MetaTraderAccount(cfg["MetaTrader"])
+
+        # Get close positions on trail setting (default to True for backward compatibility)
+        close_positions_on_trail = cfg.get("MetaTrader", {}).get("ClosePositionsOnTrail", True)
 
         # Create tasks for all accounts
         tasks = []
@@ -27,6 +31,7 @@ class MonitoringManager:
             user=account.username,
             password=account.password,
             saveProfits=account.SaveProfits,
+            closePositionsOnTrail=close_positions_on_trail,
         )
         tasks.append(mt.monitor_account())
 
@@ -120,7 +125,7 @@ class MonitoringManager:
                             continue
 
                         # Partially close position for profit taking
-                        self.position_manager.save_profit_position(ticket, i, self.save_profits)
+                        self.position_manager.save_profit_position(ticket, i, self.save_profits, self.close_positions_on_trail)
             elif trade_type == 1:  # Sell position
                 for i, tp in enumerate(tp_levels_sell):
                     # If price reached TP level and position not yet partially closed
@@ -133,7 +138,7 @@ class MonitoringManager:
                             continue
 
                         # Partially close position for profit taking
-                        self.position_manager.save_profit_position(ticket, i, self.save_profits)
+                        self.position_manager.save_profit_position(ticket, i, self.save_profits, self.close_positions_on_trail)
 
     def manage_positions(self):
         """Manage pending orders and position execution"""

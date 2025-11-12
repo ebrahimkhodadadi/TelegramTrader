@@ -52,6 +52,7 @@ This guide explains how to configure TelegramTrader for your trading setup. The 
     "AccountSize": 10000,
     "CloserPrice": 0.5,
     "expirePendinOrderInMinutes": 30,
+    "ClosePositionsOnTrail": true,
     "SymbolMappings": {
       "XAUUSD": "XAUUSD",
       "EURUSD": "EURUSD"
@@ -102,6 +103,7 @@ This guide explains how to configure TelegramTrader for your trading setup. The 
 | `CloserPrice` | number | No | Price adjustment for entries (default: 0) |
 | `expirePendinOrderInMinutes` | number | No | Pending order expiration in minutes (default: no expiration) |
 | `SymbolMappings` | object | No | Map base symbols to broker-specific variants |
+| `ClosePositionsOnTrail` | boolean | No | Whether to close positions during trailing stops (default: true) |
 
 ### Timer Settings (Optional)
 
@@ -144,6 +146,7 @@ This means:
 - `lot`: "2%" means 2% of account balance per trade
 - `HighRisk`: true enables two entry points for averaging
 - `CloserPrice`: Adjusts entry price closer to current market price (useful for pending orders)
+- `ClosePositionsOnTrail`: Controls whether positions are closed during trailing stops. Set to false to only adjust stop losses without closing positions
 
 ## Environment Variables
 

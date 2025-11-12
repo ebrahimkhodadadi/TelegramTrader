@@ -17,12 +17,13 @@ __all__ = ['MetaTrader', 'get_mt5_time', 'get_symbols']
 class MetaTrader:
     """Main MetaTrader orchestrator class using modular components"""
 
-    def __init__(self, path, server, user, password, saveProfits=None):
+    def __init__(self, path, server, user, password, saveProfits=None, closePositionsOnTrail=True):
         self.path = path
         self.server = server
         self.user = user
         self.password = password
         self.saveProfits = saveProfits
+        self.closePositionsOnTrail = closePositionsOnTrail
         self.magic = 2025
 
         # Initialize components
@@ -31,7 +32,7 @@ class MetaTrader:
         self.validator = PriceValidator(self.connection)
         self.order_manager = OrderManager(self.connection, self.market_data, self.validator, self.magic)
         self.position_manager = PositionManager(self.market_data, self.magic)
-        self.monitoring = MonitoringManager(self.connection, self.market_data, self.position_manager, saveProfits)
+        self.monitoring = MonitoringManager(self.connection, self.market_data, self.position_manager, saveProfits, closePositionsOnTrail)
     
     # Connection methods
     def Login(self) -> bool:
@@ -69,7 +70,7 @@ class MetaTrader:
         return self.position_manager.close_half_position(ticket)
 
     def save_profit_position(self, ticket, index):
-        return self.position_manager.save_profit_position(ticket, index, self.saveProfits)
+        return self.position_manager.save_profit_position(ticket, index, self.saveProfits, self.closePositionsOnTrail)
 
     def update_stop_loss(self, ticket, new_stop_loss):
         return self.position_manager.update_stop_loss(ticket, new_stop_loss)

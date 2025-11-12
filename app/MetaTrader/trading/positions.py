@@ -120,55 +120,91 @@ class PositionManager:
         # else:
         #     self.close_position(ticket)
 
-    def save_profit_position(self, ticket, index, save_profits=None):
-        """Save profit of the position volume"""
+    def save_profit_position(self, ticket, index, save_profits=None, close_positions=True):
+        """Save profit of the position volume based on profit-taking strategy"""
+
         position = self.market_data.get_open_positions(ticket)
-        if (position is None):
-            return
+        if position is None:
+            logger.warning(f"Position {ticket} not found for profit saving")
+            return False
 
-        new_lot_size = None
-        if save_profits is not None and len(save_profits) != 0 and save_profits[index]:
-            new_lot_size = round(
-                position.volume * (save_profits[index] / 100), 2)
+        # Validate save_profits configuration
+        if save_profits is None or len(save_profits) == 0:
+            logger.warning(f"No profit saving strategy configured for position {ticket}")
+            return False
 
-        if new_lot_size == None or new_lot_size == 0:
-            logger.critical("There is no strategy to save profit of volume.")
-            return
+        if index >= len(save_profits):
+            logger.error(f"Profit saving index {index} out of range for position {ticket}")
+            return False
 
-        logger.warning(
-            f"new lot size to save {save_profits[index]}% profit of {ticket} is {new_lot_size}")
+        profit_percentage = save_profits[index]
 
-                #close whole position
+        # Skip if profit percentage is zero (user doesn't want to save profit at this level)
+        if profit_percentage == 0:
+            logger.info(f"Skipping profit saving for position {ticket} at level {index} (percentage set to 0)")
+            return True
 
-        if save_profits[index] == 100:
-            self.close_position(ticket)
-            return
+        # Calculate lot size to close
+        new_lot_size = round(position.volume * (profit_percentage / 100), 2)
 
-        if new_lot_size >= 0.01:
+        if new_lot_size <= 0:
+            logger.warning(f"Calculated lot size {new_lot_size} is invalid for position {ticket}")
+            return False
+
+        logger.info(f"Saving {profit_percentage}% profit from position {ticket}: closing {new_lot_size} lots")
+
+        # Close entire position if percentage is 100%
+        if profit_percentage == 100:
+            logger.info(f"Closing entire position {ticket} for 100% profit taking")
+            return self.close_position(ticket)
+
+        if new_lot_size < 0.01 and close_positions:
+            logger.warning(f"Lot size {new_lot_size} below minimum 0.01 for position {ticket}, closing entire position instead")
+            return self.close_position(ticket)
+        elif new_lot_size < 0.01 and close_positions == False: # Skip if position closing is disabled
+            logger.info(f"Position closing disabled for trailing - skipping profit saving for {ticket}")
+            return True
+
+        # Execute partial closure
+        try:
+            # Determine close direction based on position type
+            if position.type == mt5.ORDER_TYPE_BUY:
+                order_type = mt5.ORDER_TYPE_SELL
+                close_price = mt5.symbol_info_tick(position.symbol).bid
+            else:  # SELL position
+                order_type = mt5.ORDER_TYPE_BUY
+                close_price = mt5.symbol_info_tick(position.symbol).ask
+
+            if close_price is None:
+                logger.error(f"Failed to get close price for symbol {position.symbol}")
+                return False
+
             request = {
                 "action": mt5.TRADE_ACTION_DEAL,
                 "symbol": position.symbol,
                 "volume": float(new_lot_size),
-                "type": mt5.ORDER_TYPE_SELL if position.type == mt5.ORDER_TYPE_BUY else mt5.ORDER_TYPE_BUY,
+                "type": order_type,
                 "position": position.ticket,
-                "price": mt5.symbol_info_tick(position.symbol).bid if position.type == mt5.ORDER_TYPE_BUY else mt5.symbol_info_tick(position.symbol).ask,
+                "price": close_price,
                 "deviation": 10,
                 "magic": self.magic,
-                # "comment": "Closing half position",
+                "comment": f"Profit taking {profit_percentage}%",
                 "type_time": mt5.ORDER_TIME_GTC,
                 "type_filling": mt5.ORDER_FILLING_IOC,
             }
+
             result = mt5.order_send(request)
-            logger.info(f"{result}")
+
             if result.retcode != mt5.TRADE_RETCODE_DONE:
-                logger.error(f"Failed to save profit position for {
-                              position.symbol}: {result.comment}")
+                logger.error(f"Failed to save {profit_percentage}% profit for position {ticket}: {result.comment}")
                 return False
             else:
-                logger.success(f"Successfully saved profit position for {
-                                position.symbol}, ticket {ticket}")
-        else:
-            self.close_position(ticket)
+                logger.success(f"Successfully saved {profit_percentage}% profit from position {ticket} ({position.symbol})")
+                return True
+
+        except Exception as e:
+            logger.error(f"Exception during profit saving for position {ticket}: {str(e)}")
+            return False
 
     def update_stop_loss(self, ticket, new_stop_loss):
         """
