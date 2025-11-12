@@ -6,9 +6,9 @@ Provides centralized configuration management including:
 - Notification setup
 """
 
-from .Settings import SettingsManager, GetSettings
-from .Logger import LoggerManager, ConfigLogger, add_mt5_time
-from .Notification import NotificationManager, ConfigNotification
+from .settings.Settings import SettingsManager, GetSettings
+from .logging.Logger import LoggerManager, ConfigLogger, add_mt5_time
+from .notifications.Notification import NotificationManager, ConfigNotification
 
 __all__ = [
     # Settings

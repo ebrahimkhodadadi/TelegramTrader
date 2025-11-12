@@ -2,8 +2,8 @@
 
 from typing import Optional
 from loguru import logger
-from .signal_repository import SignalRepository
-from .position_repository import PositionRepository
+from .repository.signal_repository import SignalRepository
+from .repository.position_repository import PositionRepository
 
 
 class DatabaseManager:

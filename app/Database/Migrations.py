@@ -6,8 +6,8 @@ while using the new modular database architecture.
 """
 
 from .database_manager import db_manager, DoMigrations as _DoMigrations
-from .signal_repository import signal_repo as _signal_repo
-from .position_repository import position_repo as _position_repo
+from .repository.signal_repository import signal_repo as _signal_repo
+from .repository.position_repository import position_repo as _position_repo
 
 # Legacy global variables for backward compatibility
 db_path = "telegramtrader.db"

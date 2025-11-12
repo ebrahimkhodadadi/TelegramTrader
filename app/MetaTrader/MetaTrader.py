@@ -1,14 +1,14 @@
 import asyncio
 from loguru import logger
 
-from .connection import ConnectionManager, AccountConfig
-from .market_data import MarketData
-from .validation import PriceValidator
-from .orders import OrderManager
-from .positions import PositionManager
-from .monitoring import MonitoringManager
-from .trading import TradingOperations
-from .utils import get_mt5_time, get_symbols
+from .connection.connection import ConnectionManager, AccountConfig
+from .trading.market_data import MarketData
+from .trading.validation import PriceValidator
+from .trading.orders import OrderManager
+from .trading.positions import PositionManager
+from .monitoring.monitoring import MonitoringManager
+from .trading.trading import TradingOperations
+from .trading.utils import get_mt5_time, get_symbols
 
 # Re-export for backward compatibility
 __all__ = ['MetaTrader', 'get_mt5_time', 'get_symbols']
