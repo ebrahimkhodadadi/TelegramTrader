@@ -87,8 +87,7 @@ class OrderManager:
                 openPrice = float(price)
 
             if self.any_position_by_data(symbol, openPrice, stopLoss, takeProfit) == True:
-                logger.info(f"position already exist: symbol={
-                            symbol}, openPrice={openPrice}, sl={stopLoss}, tp={takeProfit}")
+                logger.info(f"[User {self.connection.user}] Position already exists: symbol={symbol}, openPrice={openPrice}, sl={stopLoss}, tp={takeProfit}")
                 return
 
             # Open the trade
@@ -120,31 +119,31 @@ class OrderManager:
                     request["expiration"] = expiration_timestamp
                     request["type_time"] = mt5.ORDER_TIME_SPECIFIED
 
-            logger.info(f"Opening {type} order: {symbol} {lot} lots @ {price}, SL: {sl}, TP: {tp}")
+            logger.info(f"[User {self.connection.user}] Opening {type} order: {symbol} {lot} lots @ {price}, SL: {sl}, TP: {tp}")
 
             # Send trading request
             result = mt5.order_send(request)
 
             if result is not None:
                 if result.retcode != mt5.TRADE_RETCODE_DONE:
-                    logger.error(f"Order failed (code {result.retcode}): {result.comment}")
-                    logger.debug(f"Current market price: {self.market_data.get_current_price(symbol)}")
+                    logger.error(f"[User {self.connection.user}] Order failed (code {result.retcode}): {result.comment}")
+                    logger.debug(f"[User {self.connection.user}] Current market price: {self.market_data.get_current_price(symbol)}")
 
                     if result.retcode == 10015 and not force:  # Invalid price
-                        logger.warning("Retrying with market order due to invalid price")
+                        logger.warning(f"[User {self.connection.user}] Retrying with market order due to invalid price")
                         if type in [mt5.ORDER_TYPE_BUY, mt5.ORDER_TYPE_BUY_STOP, mt5.ORDER_TYPE_BUY_LIMIT]:
                             type = mt5.ORDER_TYPE_BUY
                         elif type in [mt5.ORDER_TYPE_SELL, mt5.ORDER_TYPE_SELL_LIMIT, mt5.ORDER_TYPE_SELL_STOP]:
                             type = mt5.ORDER_TYPE_SELL
                         return self.open_position(type, lot, symbol, sl, tp, price, expirePendinOrderInMinutes, comment, signal_id, closerPrice, isFirst, isSecond, force=True)
                     elif result.retcode == 10027:
-                        logger.critical("Algorithmic trading not enabled in MetaTrader terminal")
+                        logger.critical(f"[User {self.connection.user}] Algorithmic trading not enabled in MetaTrader terminal")
                     else:
-                        logger.error(f"Order error details: {mt5.last_error()}")
+                        logger.error(f"[User {self.connection.user}] Order error details: {mt5.last_error()}")
                 else:
-                    logger.success(f"Order executed successfully - Ticket: {result.order}, Symbol: {symbol}")
+                    logger.success(f"[User {self.connection.user}] Order executed successfully - Ticket: {result.order}, Symbol: {symbol}")
             else:
-                logger.error("Order send failed - no response from MetaTrader")
+                logger.error(f"[User {self.connection.user}] Order send failed - no response from MetaTrader")
 
             # save in database
             if signal_id != None:

@@ -31,7 +31,7 @@ class MetaTrader:
         self.market_data = MarketData(self.magic)
         self.validator = PriceValidator(self.connection)
         self.order_manager = OrderManager(self.connection, self.market_data, self.validator, self.magic)
-        self.position_manager = PositionManager(self.market_data, self.magic)
+        self.position_manager = PositionManager(self.market_data, self.connection, self.magic)
         self.monitoring = MonitoringManager(self.connection, self.market_data, self.position_manager, saveProfits, closePositionsOnTrail)
     
     # Connection methods

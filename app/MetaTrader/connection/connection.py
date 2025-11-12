@@ -74,18 +74,26 @@ class ConnectionManager:
         """Establish connection to MetaTrader 5 terminal"""
         try:
             if mt5.terminal_info() is not None:
+                logger.info(f"MT5 terminal already connected for user {self.user}")
                 return True
 
-            print(f"try to login to {self.server} with {self.user}")
+            logger.info(f"Attempting MT5 login for user {self.user} on server {self.server}")
             # establish connection to the MetaTrader 5 terminal
             if not mt5.initialize(path=self.path, login=self.user, server=self.server, password=self.password):
-                print("MetaTrader Login failed, error code =",
-                      mt5.last_error())
+                error_code = mt5.last_error()
+                logger.error(f"MT5 login failed for user {self.user}: error code {error_code}")
                 return False
-            print(f"login was successful for {self.user}")
+
+            # Verify connection by getting account info
+            account_info = mt5.account_info()
+            if account_info:
+                logger.success(f"MT5 login successful for user {self.user} - Account: {account_info.login}, Balance: {account_info.balance}")
+            else:
+                logger.warning(f"MT5 login completed for user {self.user} but account info unavailable")
+
             return True
         except Exception as e:
-            print(f"Unexpected error: {e}")
+            logger.error(f"Unexpected error during MT5 login for user {self.user}: {e}")
             return False
 
     def validate_symbol(self, symbol):

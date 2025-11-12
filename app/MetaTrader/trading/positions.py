@@ -6,13 +6,15 @@ from loguru import logger
 class PositionManager:
     """Handles position operations like closing, modifying, and profit taking"""
 
-    def __init__(self, market_data, magic_number=2025):
+    def __init__(self, market_data, connection_manager=None, magic_number=2025):
         self.market_data = market_data
+        self.connection = connection_manager
         self.magic = magic_number
 
     def close_position(self, ticket):
         """Close a position or cancel a pending order"""
-        logger.info(f"Attempting to close ticket {ticket}")
+        user_prefix = f"[User {self.connection.user}] " if self.connection else ""
+        logger.info(f"{user_prefix}Attempting to close ticket {ticket}")
 
         position = self.market_data.get_open_positions(ticket)
         action = mt5.TRADE_ACTION_DEAL
@@ -23,7 +25,8 @@ class PositionManager:
             action = mt5.TRADE_ACTION_REMOVE
 
         if position is None:
-            logger.warning(f"Position/order {ticket} not found")
+            user_prefix = f"[User {self.connection.user}] " if self.connection else ""
+            logger.warning(f"{user_prefix}Position/order {ticket} not found")
             return False
 
         symbol = position.symbol
@@ -68,20 +71,23 @@ class PositionManager:
                 "position": ticket
             })
 
-            logger.info(f"Closing position {ticket}: {symbol} {volume} lots at {price}")
+            user_prefix = f"[User {self.connection.user}] " if self.connection else ""
+            logger.info(f"{user_prefix}Closing position {ticket}: {symbol} {volume} lots at {price}")
         else:
             # Handle removing a pending order
             request.update({"order": ticket})
-            logger.info(f"Cancelling pending order {ticket}: {symbol}")
+            logger.info(f"{user_prefix}Cancelling pending order {ticket}: {symbol}")
 
         # Send the request
         result = mt5.order_send(request)
 
         if result.retcode != mt5.TRADE_RETCODE_DONE:
-            logger.error(f"Failed to close/cancel {ticket}: {result.comment}")
+            user_prefix = f"[User {self.connection.user}] " if self.connection else ""
+            logger.error(f"{user_prefix}Failed to close/cancel {ticket}: {result.comment}")
             return False
 
-        logger.success(f"Successfully closed/cancelled ticket {ticket}")
+        user_prefix = f"[User {self.connection.user}] " if self.connection else ""
+        logger.success(f"{user_prefix}Successfully closed/cancelled ticket {ticket}")
         return True
 
     def close_half_position(self, ticket):

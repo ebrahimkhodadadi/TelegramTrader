@@ -43,7 +43,7 @@ class NotificationManager:
                 format="🔔 **TelegramTrader Alert**\n"
                        "🕐 `{time:YYYY-MM-DD HH:mm:ss}` | ⏰ `{extra[mt5_time]}`\n"
                        "📝 {message}",
-                level="WARNING"  # Only send warnings and above to Telegram
+                level="INFO"  # Send info, warnings and above to Telegram
             )
 
             logger.success(f"Telegram notifications configured for chat {chat_id}")
