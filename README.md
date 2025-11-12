@@ -105,11 +105,57 @@ Take Profit: 1960.00, 1970.00
 
 ## Testing
 
-Run the test suite to verify functionality:
+The project includes comprehensive unit and integration tests organized by component.
 
+### Test Structure
+- **Unit Tests**: Individual component testing with mocks
+- **Integration Tests**: Component interaction testing
+- **Fixtures**: Shared test data and utilities
+
+### Running Tests
+
+#### Run All Tests
 ```bash
-python -m unittest tests/AnalyzerTest.py
+# Using pytest (recommended)
+pip install pytest
+pytest tests/
+
+# Using unittest
+python -m unittest discover tests/
 ```
+
+#### Run Specific Test Categories
+```bash
+# Unit tests only
+pytest tests/unit/
+
+# Integration tests only
+pytest tests/integration/
+
+# Specific component
+pytest tests/unit/analyzer/
+```
+
+#### Run with Coverage
+```bash
+pip install pytest-cov
+pytest --cov=app --cov-report=html tests/
+```
+
+### Test Organization
+```
+tests/
+├── fixtures/              # Test utilities and mock data
+├── unit/                 # Unit tests by component
+│   ├── analyzer/         # Signal parsing tests
+│   ├── metatrader/       # Trading logic tests
+│   ├── database/         # Data persistence tests
+│   └── ...
+├── integration/          # End-to-end component tests
+└── utils/                # Test data generators
+```
+
+See [tests/README.md](tests/README.md) for detailed testing documentation.
 
 ## Documentation
 
