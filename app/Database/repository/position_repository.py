@@ -2,7 +2,7 @@
 
 from typing import List, Dict, Optional, Any
 from .Repository import SQLiteRepository
-from .models import PositionModel
+from ..models import PositionModel
 
 
 class PositionRepository:
@@ -13,7 +13,7 @@ class PositionRepository:
 
     def create_table(self) -> None:
         """Create the positions table"""
-        from .models import DatabaseSchema
+        from ..models import DatabaseSchema
         self.repository.create_table(DatabaseSchema.POSITION_COLUMNS)
 
     def insert_position(self, position_data: Dict[str, Any]) -> int:

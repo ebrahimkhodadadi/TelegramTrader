@@ -2,7 +2,7 @@
 
 from typing import List, Dict, Optional, Any
 from .Repository import SQLiteRepository
-from .models import SignalModel
+from ..models import SignalModel
 
 
 class SignalRepository:
@@ -13,7 +13,7 @@ class SignalRepository:
 
     def create_table(self) -> None:
         """Create the signals table"""
-        from .models import DatabaseSchema
+        from ..models import DatabaseSchema
         self.repository.create_table(DatabaseSchema.SIGNAL_COLUMNS)
 
     def insert_signal(self, signal_data: Dict[str, Any]) -> int:

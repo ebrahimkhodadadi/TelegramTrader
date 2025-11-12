@@ -6,10 +6,10 @@ modern repository pattern and legacy compatibility.
 """
 
 from .database_manager import DatabaseManager, db_manager
-from .signal_repository import SignalRepository, signal_repo
-from .position_repository import PositionRepository, position_repo
+from .repository.signal_repository import SignalRepository, signal_repo
+from .repository.position_repository import PositionRepository, position_repo
 from .models import SignalModel, PositionModel, DatabaseSchema
-from .Repository import SQLiteRepository
+from .repository.Repository import SQLiteRepository
 
 # Legacy imports for backward compatibility
 from .Migrations import *

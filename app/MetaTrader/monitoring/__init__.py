@@ -1,8 +1,7 @@
 """MetaTrader monitoring components for position tracking and trailing stops"""
 
-from .monitoring import PositionMonitor, TrailingStopManager
+from .monitoring import MonitoringManager
 
 __all__ = [
-    'PositionMonitor',
-    'TrailingStopManager'
+    'MonitoringManager'
 ]

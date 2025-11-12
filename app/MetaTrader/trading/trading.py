@@ -1,6 +1,5 @@
 from datetime import datetime
 from loguru import logger
-import Database
 from Database import Migrations
 
 
@@ -248,4 +247,4 @@ class TradingOperations:
 
 # Import here to avoid circular imports
 from MetaTrader import MetaTrader
-from connection import AccountConfig
+from MetaTrader.connection import AccountConfig

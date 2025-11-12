@@ -1,8 +1,8 @@
 """MetaTrader connection management components"""
 
-from .connection import MT5Connection, AccountConfig
+from .connection import ConnectionManager, AccountConfig
 
 __all__ = [
-    'MT5Connection',
+    'ConnectionManager',
     'AccountConfig'
 ]

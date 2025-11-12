@@ -2,9 +2,9 @@
 
 from loguru import logger
 from .text_processor import TextProcessor
-from .action_detector import ActionDetector
-from .price_extractor import PriceExtractor
-from .symbol_detector import SymbolDetector
+from ..detectors.action_detector import ActionDetector
+from ..detectors.price_extractor import PriceExtractor
+from ..detectors.symbol_detector import SymbolDetector
 
 
 class SignalParser:
