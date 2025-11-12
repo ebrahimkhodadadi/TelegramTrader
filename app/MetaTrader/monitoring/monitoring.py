@@ -118,7 +118,7 @@ class MonitoringManager:
                 for i, tp in enumerate(tp_levels_buy):
                     # If price reached TP level and position not yet partially closed
                     if current_price >= tp and stop_loss < tp:
-                        logger.info(f"Trailing stop triggered for BUY position {ticket} at TP{i+1} ({tp})")
+                        # logger.info(f"Trailing stop triggered for BUY position {ticket} at TP{i+1} ({tp})")
 
                         # Move stop loss to previous TP level or entry price
                         new_stop_loss = tp_levels_buy[i - 1] if i > 0 else entry_price
@@ -131,7 +131,7 @@ class MonitoringManager:
                 for i, tp in enumerate(tp_levels_sell):
                     # If price reached TP level and position not yet partially closed
                     if current_price <= tp and stop_loss > tp:
-                        logger.info(f"Trailing stop triggered for SELL position {ticket} at TP{i+1} ({tp})")
+                        # logger.info(f"Trailing stop triggered for SELL position {ticket} at TP{i+1} ({tp})")
 
                         # Move stop loss to previous TP level or entry price
                         new_stop_loss = tp_levels_sell[i - 1] if i > 0 else entry_price
