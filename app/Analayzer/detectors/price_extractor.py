@@ -102,6 +102,9 @@ class PriceExtractor:
     def extract_take_profits(message):
         """Extract take profit levels from message"""
         try:
+            if not message:
+                return None
+
             tp_numbers = []
             sentences = re.split(r'\n+', message)
 
@@ -165,6 +168,9 @@ class PriceExtractor:
     def extract_stop_loss(message):
         """Extract stop loss level from message"""
         try:
+            if not message:
+                return None
+
             message = message.lower()
             sl_numbers = []
             sentences = re.split(r'\n+', message)

@@ -92,9 +92,9 @@ class PriceValidator:
                     base -= 1
                     newPrice = float(f"{base}{price}")
 
-            if newPrice is not None and newPrice != 0:
-                newPrice = self.convert_closer_price(
-                    symbol, action, newPrice, closerPrice, isTp=True)
+            # if newPrice is not None and newPrice != 0:
+            #     newPrice = self.convert_closer_price(
+            #         symbol, action, newPrice, closerPrice, isTp=True)
                 validated_tp_levels.append(newPrice)
                 last_price = int(newPrice)  # ذخیره آخرین مقدار معتبر
 

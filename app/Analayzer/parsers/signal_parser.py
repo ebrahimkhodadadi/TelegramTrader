@@ -23,6 +23,8 @@ class SignalParser:
 
             # Clean and normalize the message
             message = TextProcessor.normalize_for_parsing(message)
+            if not message:  # Additional safety check
+                return None, None, None, None, None, None
 
             # Extract components
             action_type = ActionDetector.detect_action_type(message)
