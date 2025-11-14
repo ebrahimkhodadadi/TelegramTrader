@@ -40,6 +40,7 @@ class PriceExtractor:
         re.compile(r'checkpoint\s*1\s*:\s*(\d+\.?\d*|OPEN)', re.IGNORECASE),
         re.compile(r'takeprofit\s*1\s*=\s*(\d+\.\d+|\d+)', re.IGNORECASE),
         re.compile(r'take\s*profit\s*1\s*:\s*(\d+\.\d+|\d+)', re.IGNORECASE),
+        re.compile(r'tp\d+\.\s*(\d+\.?\d*)', re.IGNORECASE),  # TP1. 4130, TP2. 4138, etc.
         re.compile(r'تی پی\s*(\d+)', re.IGNORECASE),  # Persian
     ]
 
@@ -60,6 +61,7 @@ class PriceExtractor:
         re.compile(r'استاپ\s*(\d+\.?\d*)', re.IGNORECASE),  # Persian
         re.compile(r'sl[\s.:]*([\d]+\.?\d*)', re.IGNORECASE),
         re.compile(r'stop\s*loss\s*(?:point)?\s*[:\-]?\s*(\d+\.\d+|\d+)', re.IGNORECASE),
+        re.compile(r'sl\s*:::*(\d+\.?\d*)', re.IGNORECASE),  # SL:::4090 format
     ]
 
     _simple_price_pattern = re.compile(r'@[\s]*([0-9]+(?:\.[0-9]+)?)')
@@ -122,6 +124,7 @@ class PriceExtractor:
                     r'checkpoint\s*1\s*:\s*(\d+\.?\d*|OPEN)',
                     r'takeprofit\s*1\s*=\s*(\d+\.\d+|\d+)',
                     r'take\s*profit\s*1\s*:\s*(\d+\.\d+|\d+)',
+                    r'tp\d+\.\s*(\d+\.?\d*)',  # TP1. 4130, TP2. 4138, etc.
                     r'تی پی\s*(\d+)',  # Persian
                 ]
 
@@ -194,6 +197,7 @@ class PriceExtractor:
                     r'استاپ\s*(\d+\.?\d*)',  # Persian
                     r'sl[\s.:]*([\d]+\.?\d*)',
                     r'stop\s*loss\s*(?:point)?\s*[:\-]?\s*(\d+\.\d+|\d+)',
+                    r'sl\s*:::*(\d+\.?\d*)',  # SL:::4090 format
                 ]
 
                 for pattern in sl_patterns:
