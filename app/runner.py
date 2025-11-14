@@ -24,7 +24,6 @@ from Database import DoMigrations
 from Helper import can_access_telegram
 from Telegram.Telegram import TelegramClientManager
 from MetaTrader import monitor_all_accounts
-from MessageHandler import ConcurrentOperationProcessor
 
 
 class ApplicationRunner:
@@ -219,10 +218,6 @@ class ApplicationRunner:
             if self.telegram_client:
                 logger.info("Closing Telegram client...")
                 # Client handles its own disconnection
-
-            # Shutdown concurrent operation processor
-            logger.info("Shutting down concurrent operation processor...")
-            ConcurrentOperationProcessor.shutdown()
 
             logger.success("Application shutdown completed")
 

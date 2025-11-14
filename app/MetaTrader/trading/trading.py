@@ -1,6 +1,3 @@
-import asyncio
-import threading
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from loguru import logger
 import Database
@@ -14,9 +11,6 @@ class TradingOperations:
     @staticmethod
     def trade(message_username, message_id, message_chatid, actionType, symbol, openPrice, secondPrice, tp_list, sl, comment):
         """Execute a complete trading operation"""
-        from MessageHandler import PerformanceMonitor
-        PerformanceMonitor.start_operation("trade_execution")
-
         # logger.debug(f"Processing trade signal: {actionType.name} {symbol}")
 
         from Configure import GetSettings
@@ -151,26 +145,14 @@ class TradingOperations:
             if 'conn' in locals():
                 conn.close()
 
-        # Execute position openings concurrently using shared executor
+        # Execute position openings sequentially
         if position_params:
-            # logger.debug(f"Opening {len(position_params)} position(s) concurrently for signal {signal_id}")
-
-            def open_single_position(params):
-                """Open a single position with given parameters"""
-                return mt.OpenPosition(
+            for params in position_params:
+                mt.OpenPosition(
                     params['actionType'], params['lot'], params['symbol'], params['sl'], params['tp'], params['price'],
                     params['expirePendinOrderInMinutes'], params['comment'], params['signal_id'],
                     params['closerPrice'], params['isFirst'], params['isSecond']
                 )
-
-            # Use shared trade executor for better performance
-            from MessageHandler import ConcurrentOperationProcessor
-            futures = [ConcurrentOperationProcessor._trade_executor.submit(open_single_position, params) for params in position_params]
-            results = [future.result() for future in futures]
-
-            # logger.debug(f"All {len(position_params)} positions processed for signal {signal_id}")
-
-        PerformanceMonitor.end_operation("trade_execution")
 
     @staticmethod
     def risk_free_positions(chat_id, message_id):
@@ -320,20 +302,12 @@ class TradingOperations:
             logger.warning(f"No positions found for signal {signal_id}")
             return
 
-        # Process position closures concurrently
-        def close_single_position(position):
-            """Close a single position"""
-            logger.info(f"Closing position {position['position_id']} for signal {signal_id}")
-            return mt.close_position(position["position_id"])
+        # Process position closures sequentially
+        successful_closures = 0
+        for position in positions:
+            if mt.close_position(position["position_id"]):
+                successful_closures += 1
 
-        logger.info(f"Closing {len(positions)} positions concurrently for signal {signal_id}")
-
-        # Use ThreadPoolExecutor for concurrent processing
-        with ThreadPoolExecutor(max_workers=min(len(positions), 3)) as executor:
-            futures = [executor.submit(close_single_position, position) for position in positions]
-            results = [future.result() for future in futures]
-
-        successful_closures = sum(1 for result in results if result)
         logger.success(f"Signal {signal_id} deleted - {successful_closures}/{len(positions)} positions closed successfully")
 
     @staticmethod
@@ -359,24 +333,13 @@ class TradingOperations:
             logger.warning(f"No positions found for signal {signal_id}")
             return
 
-        # Process positions concurrently
-        def process_single_position(position):
-            """Process a single position for half-close operation"""
+        # Process positions sequentially
+        successful_operations = 0
+        for position in positions:
             position_obj = mt.get_position_or_order(position["position_id"])
             if position_obj is not None:
-                logger.info(f"Closing half of position {position['position_id']}")
                 mt.close_half_position(position["position_id"])
-                logger.info(f"Moving SL to entry price for position {position['position_id']}")
                 mt.update_stop_loss(position["position_id"], position_obj.price_open)
-                return True
-            return False
+                successful_operations += 1
 
-        logger.info(f"Processing {len(positions)} positions concurrently for half-close operation")
-
-        # Use ThreadPoolExecutor for concurrent processing
-        with ThreadPoolExecutor(max_workers=min(len(positions), 3)) as executor:
-            futures = [executor.submit(process_single_position, position) for position in positions]
-            results = [future.result() for future in futures]
-
-        successful_operations = sum(1 for result in results if result)
         logger.success(f"Half-close operation completed for {successful_operations}/{len(positions)} positions in signal {signal_id}")
