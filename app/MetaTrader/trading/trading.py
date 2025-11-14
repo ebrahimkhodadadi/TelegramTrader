@@ -54,6 +54,11 @@ class TradingOperations:
         validated_tp_levels = mt.validate_tp_list(
             actionType, tp_list, symbol, openPrice, secondPrice, mtAccount.CloserPrice)
 
+        # Validate that we have take profit levels
+        if not validated_tp_levels:
+            logger.warning("No valid take profit levels found")
+            return
+
         # Prepare position opening parameters first
         tp_levels = sorted(validated_tp_levels)
         if actionType == 0:  # BUY
@@ -123,7 +128,7 @@ class TradingOperations:
                 "open_price": openPrice,
                 "second_price": secondPrice,
                 "stop_loss": sl,
-                "tp_list": ','.join(map(str, validated_tp_levels)),
+                "tp_list": ','.join(map(str, validated_tp_levels)) if validated_tp_levels else '',
                 "symbol": symbol,
                 "current_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
