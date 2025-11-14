@@ -25,9 +25,10 @@ class TextProcessor:
         # Remove unwanted characters but keep Persian, numbers, and common punctuation
         text = re.sub(r'[^\w\s.,:;!?(){}\[\]/\-+=@#%&*\'\"<>آ-ی]', '', text)
 
-        # Convert superscript numbers to normal
-        superscript_map = str.maketrans("¹²³⁴⁵⁶⁷⁸⁹⁰", "1234567890")
-        text = text.translate(superscript_map)
+        # Remove superscript characters completely
+        superscript_chars = "¹²³⁴⁵⁶⁷⁸⁹⁰⁺⁻⁼⁽⁾ⁿ"
+        for char in superscript_chars:
+            text = text.replace(char, "")
 
         return text.strip()
 
