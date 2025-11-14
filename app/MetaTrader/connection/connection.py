@@ -129,7 +129,7 @@ class ConnectionManager:
             return symbol
 
         cfg = Configure.GetSettings()
-        mappings = cfg.Telegram.channels.SymbolMappings
+        mappings = cfg.MetaTrader.SymbolMappings
 
         if symbol in mappings:
             exact = mappings[symbol]

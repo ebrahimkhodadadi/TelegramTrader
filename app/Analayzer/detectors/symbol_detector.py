@@ -37,7 +37,7 @@ class SymbolDetector:
 
         # Check for custom mappings first
         cfg = Configure.GetSettings()
-        mappings = cfg.get("MetaTrader", {}).get("SymbolMappings", {})
+        mappings = cfg.MetaTrader.SymbolMappings
 
         if word_upper in mappings:
             exact = mappings[word_upper]

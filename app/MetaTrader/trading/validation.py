@@ -84,17 +84,19 @@ class PriceValidator:
 
             # تنظیم TP بر اساس نوع سفارش
             if action == mt5.ORDER_TYPE_BUY:
-                while newPrice <= firstPrice or newPrice <= secondPrice:  # افزایش برای BUY
+                # افزایش برای BUY
+                while newPrice <= firstPrice or (secondPrice != None and newPrice <= secondPrice):
                     base += 1
                     newPrice = float(f"{base}{price}")
             elif action == mt5.ORDER_TYPE_SELL:
-                while newPrice >= firstPrice or newPrice >= secondPrice:  # کاهش برای SELL
+                # کاهش برای SELL
+                while newPrice >= firstPrice or (secondPrice != None and newPrice >= secondPrice):
                     base -= 1
                     newPrice = float(f"{base}{price}")
 
             if newPrice is not None and newPrice != 0:
-            #     newPrice = self.convert_closer_price(
-            #         symbol, action, newPrice, closerPrice, isTp=True)
+                #     newPrice = self.convert_closer_price(
+                #         symbol, action, newPrice, closerPrice, isTp=True)
                 validated_tp_levels.append(newPrice)
                 last_price = int(newPrice)  # ذخیره آخرین مقدار معتبر
 
@@ -146,7 +148,7 @@ class PriceValidator:
         if lot_size < 0.01:
             # lot_size = 0.01
             logger.warning(f"Risk amount of {risk_amount} exceeds {
-                            risk_percentage}%. The lot size cannot be lower than 0.01, this is at your own risk.")
+                risk_percentage}%. The lot size cannot be lower than 0.01, this is at your own risk.")
 
         return lot_size
 

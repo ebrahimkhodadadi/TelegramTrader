@@ -222,8 +222,8 @@ class TelegramClientManager:
 
             # Validate channel access
             if not self._is_channel_allowed(username, chat_id):
-                logger.debug(
-                    f"Message from unauthorized channel: {username or chat_id}")
+                # logger.debug(
+                #     f"Message from unauthorized channel: {username or chat_id}")
                 return
 
             # Clean message text
