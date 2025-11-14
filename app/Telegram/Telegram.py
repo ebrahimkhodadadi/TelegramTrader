@@ -93,12 +93,14 @@ class TelegramClientManager:
 
             except (AuthKeyError, OSError) as e:
                 logger.critical(f"Authentication or network error: {e}")
-                logger.info("Please check your API credentials and network connection")
+                logger.info(
+                    "Please check your API credentials and network connection")
                 await asyncio.sleep(30)  # Longer delay for auth errors
 
             except FloodWaitError as e:
                 wait_time = e.seconds
-                logger.warning(f"Rate limited by Telegram. Waiting {wait_time} seconds...")
+                logger.warning(
+                    f"Rate limited by Telegram. Waiting {wait_time} seconds...")
                 await asyncio.sleep(wait_time)
 
             except (NetworkMigrateError, ServerError, RPCError) as e:
@@ -151,7 +153,8 @@ class TelegramClientManager:
                 text = event.message.message.lower()
                 text = text.encode('utf-8', errors='ignore').decode('utf-8')
 
-                logger.debug(f"Processing edited message in chat {chat_id}, message {message_id}")
+                logger.debug(
+                    f"Processing edited message in chat {chat_id}, message {message_id}")
                 HandleEdite(chat_id, message_id, text)
 
             except Exception as e:
@@ -164,7 +167,8 @@ class TelegramClientManager:
                 chat_id = clear_chat_id(event.chat_id)
 
                 for msg_id in event.deleted_ids:
-                    logger.debug(f"Processing deleted message {msg_id} in chat {chat_id}")
+                    logger.debug(
+                        f"Processing deleted message {msg_id} in chat {chat_id}")
                     HandleDelete(chat_id, msg_id)
 
             except Exception as e:
@@ -181,7 +185,8 @@ class TelegramClientManager:
             parent_msg_id = replied.id
             message_text = event.message.message.lower()
 
-            logger.debug(f"Processing reply to message {parent_msg_id} in chat {parent_chat_id}")
+            logger.debug(
+                f"Processing reply to message {parent_msg_id} in chat {parent_chat_id}")
 
             # Handle different types of reply commands
             HandleParentEdit(parent_chat_id, parent_msg_id, message_text)
@@ -217,15 +222,18 @@ class TelegramClientManager:
 
             # Validate channel access
             if not self._is_channel_allowed(username, chat_id):
-                logger.debug(f"Message from unauthorized channel: {username or chat_id}")
+                logger.debug(
+                    f"Message from unauthorized channel: {username or chat_id}")
                 return
 
             # Clean message text
-            text = event.raw_text.encode('utf-8', errors='ignore').decode('utf-8')
+            text = event.raw_text.encode(
+                'utf-8', errors='ignore').decode('utf-8')
 
             # Process the message
             # logger.debug(f"Processing {message_type.name} message from {username or chat_id}")
-            Handle(message_type, text, message_link, username, message_id, chat_id)
+            Handle(message_type, text, message_link,
+                   username, message_id, chat_id)
 
         except Exception as e:
             logger.error(f"Error processing message event: {e}")
@@ -243,11 +251,8 @@ class TelegramClientManager:
         """
         try:
             cfg = Configure.GetSettings()
-            telegram_config = cfg.get('Telegram', {})
-            channels_config = telegram_config.get('channels', {})
-
-            white_list = channels_config.get('whiteList', [])
-            black_list = channels_config.get('blackList', [])
+            white_list = cfg.Telegram.channels.whiteList
+            black_list = cfg.Telegram.channels.blackList
 
             # Check whitelist (if specified)
             if white_list:
@@ -255,7 +260,8 @@ class TelegramClientManager:
                 allowed_chat_ids = {str(cid) for cid in white_list}
 
                 username_allowed = username and username.lower() in allowed_usernames
-                chat_id_allowed = str(chat_id) in allowed_chat_ids or chat_id in white_list
+                chat_id_allowed = str(
+                    chat_id) in allowed_chat_ids or chat_id in white_list
 
                 if not (username_allowed or chat_id_allowed):
                     return False
@@ -266,7 +272,8 @@ class TelegramClientManager:
                 blocked_chat_ids = {str(cid) for cid in black_list}
 
                 username_blocked = username and username.lower() in blocked_usernames
-                chat_id_blocked = str(chat_id) in blocked_chat_ids or chat_id in black_list
+                chat_id_blocked = str(
+                    chat_id) in blocked_chat_ids or chat_id in black_list
 
                 if username_blocked or chat_id_blocked:
                     return False

@@ -51,7 +51,8 @@ class ConnectionManager:
             # Check if we're logged in (connected to account)
             account_info = mt5.account_info()
             if account_info is None:
-                logger.warning("Not logged into MT5 account, symbols may not be available")
+                logger.warning(
+                    "Not logged into MT5 account, symbols may not be available")
                 # Still try to get symbols, some basic symbols might be available
 
             symbols = mt5.symbols_get()
@@ -80,26 +81,32 @@ class ConnectionManager:
         """Establish connection to MetaTrader 5 terminal"""
         try:
             if mt5.terminal_info() is not None:
-                logger.info(f"MT5 terminal already connected for user {self.user}")
+                logger.info(
+                    f"MT5 terminal already connected for user {self.user}")
                 return True
 
-            logger.info(f"Attempting MT5 login for user {self.user} on server {self.server}")
+            logger.info(
+                f"Attempting MT5 login for user {self.user} on server {self.server}")
             # establish connection to the MetaTrader 5 terminal
             if not mt5.initialize(path=self.path, login=self.user, server=self.server, password=self.password):
                 error_code = mt5.last_error()
-                logger.error(f"MT5 login failed for user {self.user}: error code {error_code}")
+                logger.error(
+                    f"MT5 login failed for user {self.user}: error code {error_code}")
                 return False
 
             # Verify connection by getting account info
             account_info = mt5.account_info()
             if account_info:
-                logger.success(f"MT5 login successful for user {self.user} - Account: {account_info.login}, Balance: {account_info.balance}")
+                logger.success(
+                    f"MT5 login successful for user {self.user} - Account: {account_info.login}, Balance: {account_info.balance}")
             else:
-                logger.warning(f"MT5 login completed for user {self.user} but account info unavailable")
+                logger.warning(
+                    f"MT5 login completed for user {self.user} but account info unavailable")
 
             return True
         except Exception as e:
-            logger.error(f"Unexpected error during MT5 login for user {self.user}: {e}")
+            logger.error(
+                f"Unexpected error during MT5 login for user {self.user}: {e}")
             return False
 
     def validate_symbol(self, symbol):
@@ -108,7 +115,7 @@ class ConnectionManager:
         current_time = time.time()
         if (self._symbols_cache is None or
             self._symbols_cache_time is None or
-            current_time - self._symbols_cache_time > self._cache_duration):
+                current_time - self._symbols_cache_time > self._cache_duration):
             self._symbols_cache = ConnectionManager.get_symbols()
             self._symbols_cache_time = current_time
 
@@ -122,7 +129,7 @@ class ConnectionManager:
             return symbol
 
         cfg = Configure.GetSettings()
-        mappings = cfg.get("MetaTrader", {}).get("SymbolMappings", {})
+        mappings = cfg.Telegram.channels.SymbolMappings
 
         if symbol in mappings:
             exact = mappings[symbol]
@@ -144,7 +151,7 @@ class ConnectionManager:
 
         if (cache_key in self._symbol_info_cache and
             cache_key in self._symbol_info_cache_time and
-            current_time - self._symbol_info_cache_time[cache_key] < self._cache_duration):
+                current_time - self._symbol_info_cache_time[cache_key] < self._cache_duration):
 
             symbol_info = self._symbol_info_cache[cache_key]
         else:
@@ -163,9 +170,11 @@ class ConnectionManager:
 
         # if the symbol is unavailable in MarketWatch, add it
         if not symbol_info.visible:
-            logger.debug(f"Symbol {symbol} not visible, selecting in market watch")
+            logger.debug(
+                f"Symbol {symbol} not visible, selecting in market watch")
             if not mt5.symbol_select(symbol, True):
-                logger.critical(f"Failed to select symbol {symbol} in market watch")
+                logger.critical(
+                    f"Failed to select symbol {symbol} in market watch")
                 return False
 
         return True
@@ -193,7 +202,7 @@ class AccountConfig:
         self.CloserPrice = account_dict.get('CloserPrice')
         self.SaveProfits = account_dict.get('SaveProfits')
         self.account_size = account_dict.get('AccountSize')
-        self.close_positions_on_trail = account_dict.get('ClosePositionsOnTrail')
+        self.close_positions_on_trail = account_dict.get(
+            'ClosePositionsOnTrail')
         self.expirePendinOrderInMinutes = account_dict.get(
             'expirePendinOrderInMinutes')
-
