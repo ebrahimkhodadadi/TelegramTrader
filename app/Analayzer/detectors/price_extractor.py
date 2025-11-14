@@ -41,6 +41,8 @@ class PriceExtractor:
         re.compile(r'takeprofit\s*1\s*=\s*(\d+\.\d+|\d+)', re.IGNORECASE),
         re.compile(r'take\s*profit\s*1\s*:\s*(\d+\.\d+|\d+)', re.IGNORECASE),
         re.compile(r'tp\d+\.\s*(\d+\.?\d*)', re.IGNORECASE),  # TP1. 4130, TP2. 4138, etc.
+        re.compile(r'tp\.\s*(\d+\.?\d*)', re.IGNORECASE),  # TP. 4130 (after superscript removal)
+        re.compile(r'tp\.(\d+\.?\d*)', re.IGNORECASE),  # TP.4130 (no space after dot)
         re.compile(r'تی پی\s*(\d+)', re.IGNORECASE),  # Persian
     ]
 
@@ -125,6 +127,8 @@ class PriceExtractor:
                     r'takeprofit\s*1\s*=\s*(\d+\.\d+|\d+)',
                     r'take\s*profit\s*1\s*:\s*(\d+\.\d+|\d+)',
                     r'tp\d+\.\s*(\d+\.?\d*)',  # TP1. 4130, TP2. 4138, etc.
+                    r'tp\.\s*(\d+\.?\d*)',  # TP. 4130 (after superscript removal)
+                    r'tp\.(\d+\.?\d*)',  # TP.4130 (no space after dot)
                     r'تی پی\s*(\d+)',  # Persian
                 ]
 

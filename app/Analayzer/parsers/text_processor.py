@@ -13,7 +13,10 @@ class TextProcessor:
         if not text:
             return ""
 
-        # Normalize bold/italic Unicode
+        # 1) حذف کامل سوپرسکریپت‌ها و ساب‌اسکریپت‌ها قبل از NFKC
+        text = re.sub(r'[\u2070-\u209F]', '', text)
+
+        # 2) حالا نرمال‌سازی بدون اینکه چیزی تبدیل به عدد بشه
         text = unicodedata.normalize("NFKC", text)
 
         # Remove excessive spaces but keep new lines
@@ -24,11 +27,6 @@ class TextProcessor:
 
         # Remove unwanted characters but keep Persian, numbers, and common punctuation
         text = re.sub(r'[^\w\s.,:;!?(){}\[\]/\-+=@#%&*\'\"<>آ-ی]', '', text)
-
-        # Remove superscript characters completely
-        superscript_chars = "¹²³⁴⁵⁶⁷⁸⁹⁰⁺⁻⁼⁽⁾ⁿ"
-        for char in superscript_chars:
-            text = text.replace(char, "")
 
         return text.strip()
 
