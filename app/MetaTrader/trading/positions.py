@@ -148,7 +148,7 @@ class PositionManager:
         # Skip if profit percentage is zero (user doesn't want to save profit at this level)
         if profit_percentage == 0:
             logger.info(f"Skipping profit saving for position {ticket} at level {index} (percentage set to 0)")
-            return True
+            return False
 
         # Calculate lot size to close
         new_lot_size = round(position.volume * (profit_percentage / 100), 2)
@@ -164,10 +164,10 @@ class PositionManager:
             logger.info(f"Closing entire position {ticket} for 100% profit taking")
             return self.close_position(ticket)
 
-        if new_lot_size < 0.01 and close_positions:
+        if new_lot_size <= 0.01 and close_positions:
             logger.warning(f"Lot size {new_lot_size} below minimum 0.01 for position {ticket}, closing entire position instead")
             return self.close_position(ticket)
-        elif new_lot_size < 0.01 and close_positions == False: # Skip if position closing is disabled
+        elif new_lot_size <= 0.01 and close_positions == False: # Skip if position closing is disabled
             logger.info(f"Position closing disabled for trailing - skipping profit saving for {ticket}")
             return True
 
