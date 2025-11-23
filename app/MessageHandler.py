@@ -112,6 +112,11 @@ class MessageHandler:
             if not MessageHandler._validate_signal_data(action_type, symbol, first_price, stop_loss):
                 return
 
+            # Check symbol filtering
+            if not MessageHandler._is_symbol_allowed(symbol):
+                logger.info(f"Signal for symbol {symbol} rejected by filtering rules")
+                return
+
             # Log the signal
             logger.success(f"New {action_type.name} {symbol} signal detected ({comment})")
 
@@ -154,6 +159,40 @@ class MessageHandler:
             return False
 
         return True
+
+    @staticmethod
+    def _is_symbol_allowed(symbol: str) -> bool:
+        """Check if a symbol is allowed based on whitelist/blacklist configuration"""
+        try:
+            cfg = GetSettings()
+            metatrader_config = cfg.MetaTrader
+            if not metatrader_config:
+                return True  # No filtering configured
+
+            symbols_config = metatrader_config.symbols
+            if not symbols_config:
+                return True  # No symbol filtering configured
+
+            white_list = symbols_config.whiteList
+            black_list = symbols_config.blackList
+
+            # Check blacklist first (always takes precedence)
+            if black_list:
+                blocked_symbols = {str(s).upper() for s in black_list}
+                if symbol.upper() in blocked_symbols or symbol.upper() in black_list:
+                    return False
+
+            # Check whitelist
+            if white_list:
+                allowed_symbols = {str(s).upper() for s in white_list}
+                if symbol.upper() not in allowed_symbols and symbol.upper() not in white_list:
+                    return False
+
+            return True
+
+        except Exception as e:
+            logger.error(f"Error checking symbol permissions: {e}")
+            return True  # Allow symbol on error
 
     @staticmethod
     def _handle_last_edit(chat_id: int, text: str) -> None:

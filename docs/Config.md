@@ -56,6 +56,10 @@ This guide explains how to configure TelegramTrader for your trading setup. The 
     "SymbolMappings": {
       "XAUUSD": "XAUUSD",
       "EURUSD": "EURUSD"
+    },
+    "symbols": {
+      "whiteList": ["EURUSD", "GBPUSD", "XAUUSD"],
+      "blackList": ["JPYUSD", "exotics"]
     }
   },
   "Timer": {
@@ -104,6 +108,25 @@ This guide explains how to configure TelegramTrader for your trading setup. The 
 | `expirePendinOrderInMinutes` | number | No | Pending order expiration in minutes (default: no expiration) |
 | `SymbolMappings` | object | No | Map base symbols to broker-specific variants |
 | `ClosePositionsOnTrail` | boolean | No | Whether to close positions during trailing stops (default: true) |
+| `symbols.whiteList` | array | No | Array of allowed trading symbols. If empty, all symbols are allowed except blacklisted ones |
+| `symbols.blackList` | array | No | Array of blocked trading symbols |
+
+### Symbol Filtering
+
+Symbol filtering allows you to control which trading instruments the bot will accept signals for:
+
+```json
+"symbols": {
+  "whiteList": ["EURUSD", "GBPUSD", "XAUUSD"],
+  "blackList": ["JPYUSD", "exotics"]
+}
+```
+
+**Symbol Filtering Logic:**
+- If `whiteList` is not empty, only signals for whitelisted symbols are processed
+- `blackList` always takes precedence (signals for blacklisted symbols are ignored)
+- Symbol names should match the format used in signals (e.g., "EURUSD", "XAUUSD")
+- Filtering is case-insensitive
 
 ### Timer Settings (Optional)
 
