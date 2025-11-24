@@ -164,10 +164,10 @@ class PositionManager:
             logger.info(f"Closing entire position {ticket} for 100% profit taking")
             return self.close_position(ticket)
 
-        if new_lot_size <= 0.01 and close_positions:
+        if (position.volume <= 0.01 and new_lot_size <= 0.01) and close_positions:
             logger.warning(f"Lot size {new_lot_size} below minimum 0.01 for position {ticket}, closing entire position instead")
             return self.close_position(ticket)
-        elif new_lot_size <= 0.01 and close_positions == False: # Skip if position closing is disabled
+        elif (position.volume <= 0.01 and new_lot_size <= 0.01) and close_positions == False: # Skip if position closing is disabled
             logger.info(f"Position closing disabled for trailing - skipping profit saving for {ticket}")
             return True
 
