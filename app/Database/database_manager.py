@@ -9,14 +9,14 @@ from .repository.position_repository import PositionRepository
 class DatabaseManager:
     """Manages database initialization and migrations"""
 
-    def __init__(self, db_path: str = "telegramtrader.db", config: dict = None):
+    def __init__(self, db_path: str = "telegramtrader.db", config=None):
         self.db_path = db_path
-        self.config = config or {}
+        self.config = config
 
         # Check cache settings from MetaTrader config
         disable_cache = False
-        if config and 'MetaTrader' in config:
-            mt_config = config['MetaTrader']
+        if config and hasattr(config, 'MetaTrader'):
+            mt_config = config.MetaTrader
             disable_cache = getattr(mt_config, 'disableCache', False)
 
         # Initialize repositories with cache settings
