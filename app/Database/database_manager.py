@@ -9,10 +9,20 @@ from .repository.position_repository import PositionRepository
 class DatabaseManager:
     """Manages database initialization and migrations"""
 
-    def __init__(self, db_path: str = "telegramtrader.db"):
+    def __init__(self, db_path: str = "telegramtrader.db", config: dict = None):
         self.db_path = db_path
-        self.signal_repo = SignalRepository(db_path)
-        self.position_repo = PositionRepository(db_path)
+        self.config = config or {}
+
+        # Check cache settings from MetaTrader config
+        disable_cache = False
+        if config and 'MetaTrader' in config:
+            mt_config = config['MetaTrader']
+            disable_cache = getattr(mt_config, 'disableCache', False)
+
+        # Initialize repositories with cache settings
+        enable_cache = not disable_cache
+        self.signal_repo = SignalRepository(db_path, enable_cache=enable_cache)
+        self.position_repo = PositionRepository(db_path, enable_cache=enable_cache)
 
     def initialize_database(self) -> None:
         """Initialize database tables"""
@@ -42,8 +52,12 @@ class DatabaseManager:
 db_manager = DatabaseManager()
 
 # Backward compatibility functions
-def DoMigrations():
+def DoMigrations(config=None):
     """Legacy function for running migrations"""
+    if config:
+        # Reinitialize with config if provided
+        global db_manager
+        db_manager = DatabaseManager(config=config)
     db_manager.run_migrations()
 
 # Global repositories for backward compatibility

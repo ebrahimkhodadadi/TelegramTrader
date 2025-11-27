@@ -146,8 +146,8 @@ class ApplicationRunner:
             self.settings.Notification.chatId
         )
 
-        # Initialize database
-        DoMigrations()
+        # Initialize database with configuration
+        DoMigrations(self.settings)
 
         logger.success("Component initialization completed")
 

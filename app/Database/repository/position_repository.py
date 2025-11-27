@@ -8,8 +8,8 @@ from ..models import PositionModel
 class PositionRepository:
     """Repository for position-related database operations"""
 
-    def __init__(self, db_path: str = "telegramtrader.db"):
-        self.repository = SQLiteRepository(db_path, "Positions")
+    def __init__(self, db_path: str = "telegramtrader.db", enable_cache: bool = True):
+        self.repository = SQLiteRepository(db_path, "Positions", enable_cache=enable_cache)
 
     def create_table(self) -> None:
         """Create the positions table"""

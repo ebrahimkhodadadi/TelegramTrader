@@ -53,6 +53,7 @@ This guide explains how to configure TelegramTrader for your trading setup. The 
     "CloserPrice": 0.5,
     "expirePendinOrderInMinutes": 30,
     "ClosePositionsOnTrail": true,
+    "disableCache": false,
     "SymbolMappings": {
       "XAUUSD": "XAUUSD",
       "EURUSD": "EURUSD"
@@ -108,6 +109,7 @@ This guide explains how to configure TelegramTrader for your trading setup. The 
 | `expirePendinOrderInMinutes` | number | No | Pending order expiration in minutes (default: no expiration) |
 | `SymbolMappings` | object | No | Map base symbols to broker-specific variants |
 | `ClosePositionsOnTrail` | boolean | No | Whether to close positions during trailing stops (default: true) |
+| `disableCache` | boolean | No | Disable database caching for debugging or memory constraints (default: false) |
 | `symbols.whiteList` | array | No | Array of allowed trading symbols. If empty, all symbols are allowed except blacklisted ones |
 | `symbols.blackList` | array | No | Array of blocked trading symbols |
 
