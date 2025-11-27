@@ -379,6 +379,9 @@ class Settings:
 # Global instance for easy access
 settings = Settings.get_instance()
 
+# Backward compatibility aliases
+SettingsManager = Settings
+
 # Backward compatibility functions
 @logger.catch
 def GetSettings():
