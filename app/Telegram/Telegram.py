@@ -250,7 +250,7 @@ class TelegramClientManager:
             True if channel is allowed, False otherwise
         """
         try:
-            from Configure.settings import Settings
+            from Configure.settings.Settings import Settings
             white_list = Settings.telegram_channels_whitelist()
             black_list = cfg.Telegram.channels.blackList
 

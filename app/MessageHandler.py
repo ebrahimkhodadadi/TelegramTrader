@@ -17,7 +17,7 @@ from loguru import logger
 from enum import Enum
 
 from Analayzer import parse_message, extract_price
-from Configure.settings import Settings
+from Configure.settings.Settings import Settings
 from Database import Migrations
 from Helper import is_now_between
 from MetaTrader import Trade, RiskFreePositions, Update_last_signal, Update_signal, Close_half_signal, Delete_signal

@@ -19,7 +19,7 @@ import sys
 from typing import NoReturn
 from loguru import logger
 
-from Configure.settings import Settings
+from Configure.settings.Settings import Settings
 from Configure import ConfigLogger, ConfigNotification
 from Database import DoMigrations
 from Helper import can_access_telegram

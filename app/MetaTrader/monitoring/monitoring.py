@@ -17,7 +17,7 @@ class MonitoringManager:
     @staticmethod
     async def monitor_all_accounts():
         """Monitor all accounts concurrently"""
-        from Configure.settings import Settings
+        from Configure.settings.Settings import Settings
         from ..connection import AccountConfig
         from ..MetaTrader import MetaTrader
 

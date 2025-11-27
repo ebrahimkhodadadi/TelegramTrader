@@ -13,7 +13,7 @@ class TradingOperations:
         """Execute a complete trading operation"""
         # logger.debug(f"Processing trade signal: {actionType.name} {symbol}")
 
-        from Configure.settings import Settings
+        from Configure.settings.Settings import Settings
         from ..MetaTrader import MetaTrader
 
         mtAccount = AccountConfig({
@@ -181,7 +181,7 @@ class TradingOperations:
         logger.info(
             f"Applying risk-free strategy for chat {chat_id}, message {message_id}")
 
-        from Configure.settings import Settings
+        from Configure.settings.Settings import Settings
         from ..MetaTrader import MetaTrader
 
         mtAccount = AccountConfig({
@@ -313,7 +313,7 @@ class TradingOperations:
         logger.info(
             f"Updating stop loss to {stop_loss} for last signal in chat {chat_id}")
 
-        from Configure.settings import Settings
+        from Configure.settings.Settings import Settings
         from ..MetaTrader import MetaTrader
 
         account = AccountConfig({
@@ -363,7 +363,7 @@ class TradingOperations:
         logger.info(
             f"Updating signal {signal_id} - SL: {stopLoss}, TP: {takeProfits}")
 
-        from Configure.settings import Settings
+        from Configure.settings.Settings import Settings
         from ..MetaTrader import MetaTrader
 
         account = AccountConfig({
@@ -414,7 +414,7 @@ class TradingOperations:
         """Delete signal and close all related positions"""
         logger.info(f"Deleting signal {signal_id} and closing all positions")
 
-        from Configure.settings import Settings
+        from Configure.settings.Settings import Settings
         from ..MetaTrader import MetaTrader
 
         account = AccountConfig({
@@ -458,7 +458,7 @@ class TradingOperations:
         """Close half of positions for a signal"""
         logger.info(f"Closing half positions for signal {signal_id}")
 
-        from Configure.settings import Settings
+        from Configure.settings.Settings import Settings
         from ..MetaTrader import MetaTrader
 
         account = AccountConfig({

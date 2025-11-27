@@ -36,7 +36,7 @@ class SymbolDetector:
             return None
 
         # Check for custom mappings first
-        from Configure.settings import Settings
+        from Configure.settings.Settings import Settings
         mappings = Settings.mt_symbol_mappings()
 
         if word_upper in mappings:
