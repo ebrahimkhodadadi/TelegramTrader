@@ -4,7 +4,7 @@ from typing import Optional
 from loguru import logger
 from .repository.signal_repository import SignalRepository
 from .repository.position_repository import PositionRepository
-from Configure.settings import Settings
+from Configure.settings.Settings import Settings
 
 class DatabaseManager:
     """Manages database initialization and migrations"""

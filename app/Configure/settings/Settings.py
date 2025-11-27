@@ -69,47 +69,46 @@ class SafeConfig:
     # Telegram properties
     @property
     def telegram_api_id(self) -> int:
-        return self._get_nested_value('Telegram', 'api_id', self._defaults['telegram_api_id'])
+        return self._get_nested_value('Telegram', 'api_id') or self._defaults['telegram_api_id']
 
     @property
     def telegram_api_hash(self) -> str:
-        return self._get_nested_value('Telegram', 'api_hash', self._defaults['telegram_api_hash'])
+        return self._get_nested_value('Telegram', 'api_hash') or self._defaults['telegram_api_hash']
 
     @property
     def telegram_channels_whitelist(self) -> List[str]:
-        return self._get_nested_value('Telegram', 'channels', 'whiteList', self._defaults['telegram_channels_whitelist'])
+        return self._get_nested_value('Telegram', 'channels', 'whiteList') or self._defaults['telegram_channels_whitelist']
 
     @property
     def telegram_channels_blacklist(self) -> List[str]:
-        return self._get_nested_value('Telegram', 'channels', 'blackList', self._defaults['telegram_channels_blacklist'])
+        return self._get_nested_value('Telegram', 'channels', 'blackList') or self._defaults['telegram_channels_blacklist']
 
     # Notification properties
     @property
     def notification_token(self) -> str:
-        return self._get_nested_value('Notification', 'token', self._defaults['notification_token'])
+        return self._get_nested_value('Notification', 'token') or self._defaults['notification_token']
 
     @property
     def notification_chat_id(self) -> int:
-        return self._get_nested_value('Notification', 'chatId', self._defaults['notification_chat_id'])
+        return self._get_nested_value('Notification', 'chatId') or self._defaults['notification_chat_id']
 
     # MetaTrader properties
     @property
     def mt_server(self) -> str:
-        return self._get_nested_value('MetaTrader', 'server', self._defaults['mt_server'])
+        return self._get_nested_value('MetaTrader', 'server') or self._defaults['mt_server']
 
     @property
     def mt_username(self) -> int:
-        return self._get_nested_value('MetaTrader', 'username', self._defaults['mt_username'])
+        return self._get_nested_value('MetaTrader', 'username') or self._defaults['mt_username']
 
     @property
     def mt_password(self) -> str:
-        return self._get_nested_value('MetaTrader', 'password', self._defaults['mt_password'])
+        return self._get_nested_value('MetaTrader', 'password') or self._defaults['mt_password']
 
     @property
     def mt_path(self) -> str:
-        path = self._get_nested_value('MetaTrader', 'path', self._defaults['mt_path'])
+        path = self._get_nested_value('MetaTrader', 'path') or self._defaults['mt_path']
         if not path or not os.path.exists(path):
-            # Try to find terminal64.exe in current directory
             current_dir = os.getcwd()
             default_path = os.path.join(current_dir, 'terminal64.exe')
             if os.path.exists(default_path):
@@ -118,73 +117,80 @@ class SafeConfig:
 
     @property
     def mt_lot(self) -> str:
-        return self._get_nested_value('MetaTrader', 'lot', self._defaults['mt_lot'])
+        return self._get_nested_value('MetaTrader', 'lot') or self._defaults['mt_lot']
 
     @property
     def mt_high_risk(self) -> bool:
-        return self._get_nested_value('MetaTrader', 'HighRisk', self._defaults['mt_high_risk'])
+        result = self._get_nested_value('MetaTrader', 'HighRisk')
+        return result if result is not None else self._defaults['mt_high_risk']
 
     @property
     def mt_save_profits(self) -> List[int]:
-        return self._get_nested_value('MetaTrader', 'SaveProfits', self._defaults['mt_save_profits'])
+        return self._get_nested_value('MetaTrader', 'SaveProfits') or self._defaults['mt_save_profits']
 
     @property
     def mt_account_size(self) -> Optional[float]:
-        return self._get_nested_value('MetaTrader', 'AccountSize', self._defaults['mt_account_size'])
+        return self._get_nested_value('MetaTrader', 'AccountSize') or self._defaults['mt_account_size']
 
     @property
     def mt_closer_price(self) -> float:
-        return self._get_nested_value('MetaTrader', 'CloserPrice', self._defaults['mt_closer_price'])
+        result = self._get_nested_value('MetaTrader', 'CloserPrice')
+        return result if result is not None else self._defaults['mt_closer_price']
 
     @property
     def mt_expire_pending_orders_minutes(self) -> Optional[int]:
-        return self._get_nested_value('MetaTrader', 'expirePendinOrderInMinutes', self._defaults['mt_expire_pending_orders_minutes'])
+        return self._get_nested_value('MetaTrader', 'expirePendinOrderInMinutes') or self._defaults['mt_expire_pending_orders_minutes']
 
     @property
     def mt_close_positions_on_trail(self) -> bool:
-        return self._get_nested_value('MetaTrader', 'ClosePositionsOnTrail', self._defaults['mt_close_positions_on_trail'])
+        result = self._get_nested_value('MetaTrader', 'ClosePositionsOnTrail')
+        return result if result is not None else self._defaults['mt_close_positions_on_trail']
 
     @property
     def mt_symbol_mappings(self) -> Dict[str, str]:
-        return self._get_nested_value('MetaTrader', 'SymbolMappings', self._defaults['mt_symbol_mappings'])
+        return self._get_nested_value('MetaTrader', 'SymbolMappings') or self._defaults['mt_symbol_mappings']
 
     @property
     def mt_symbols_whitelist(self) -> List[str]:
-        return self._get_nested_value('MetaTrader', 'symbols', 'whiteList', self._defaults['mt_symbols_whitelist'])
+        return self._get_nested_value('MetaTrader', 'symbols', 'whiteList') or self._defaults['mt_symbols_whitelist']
 
     @property
     def mt_symbols_blacklist(self) -> List[str]:
-        return self._get_nested_value('MetaTrader', 'symbols', 'blackList', self._defaults['mt_symbols_blacklist'])
+        return self._get_nested_value('MetaTrader', 'symbols', 'blackList') or self._defaults['mt_symbols_blacklist']
 
     # Main config properties
     @property
     def disable_cache(self) -> bool:
-        return self._get_nested_value('disableCache', self._defaults['disable_cache'])
+        result = self._get_nested_value('disableCache')
+        return result if result is not None else self._defaults['disable_cache']
 
     # Timer properties
     @property
     def timer_start(self) -> Optional[str]:
-        return self._get_nested_value('Timer', 'start', self._defaults['timer_start'])
+        return self._get_nested_value('Timer', 'start') or self._defaults['timer_start']
 
     @property
     def timer_end(self) -> Optional[str]:
-        return self._get_nested_value('Timer', 'end', self._defaults['timer_end'])
+        return self._get_nested_value('Timer', 'end') or self._defaults['timer_end']
 
-    # Legacy compatibility properties (for backward compatibility)
+    # Legacy compatibility properties
     @property
     def Telegram(self):
         """Legacy Telegram config access"""
         class TelegramConfig:
             def __init__(self, parent):
+                self._parent = parent
                 self.api_id = parent.telegram_api_id
                 self.api_hash = parent.telegram_api_hash
-                self.channels = self
-            def __getattr__(self, name):
-                if name == 'whiteList':
-                    return self.__class__.__bases__[0].telegram_channels_whitelist
-                elif name == 'blackList':
-                    return self.__class__.__bases__[0].telegram_channels_blacklist
-                raise AttributeError(f"'TelegramConfig' has no attribute '{name}'")
+                
+            @property
+            def channels(self):
+                class ChannelsConfig:
+                    def __init__(self, parent):
+                        self._parent = parent
+                        self.whiteList = parent.telegram_channels_whitelist
+                        self.blackList = parent.telegram_channels_blacklist
+                return ChannelsConfig(self._parent)
         return TelegramConfig(self)
 
     @property
@@ -201,6 +207,7 @@ class SafeConfig:
         """Legacy MetaTrader config access"""
         class MetaTraderConfig:
             def __init__(self, parent):
+                self._parent = parent
                 self.server = parent.mt_server
                 self.username = parent.mt_username
                 self.password = parent.mt_password
@@ -213,13 +220,15 @@ class SafeConfig:
                 self.expirePendinOrderInMinutes = parent.mt_expire_pending_orders_minutes
                 self.ClosePositionsOnTrail = parent.mt_close_positions_on_trail
                 self.SymbolMappings = parent.mt_symbol_mappings
-                self.symbols = self
-            def __getattr__(self, name):
-                if name == 'whiteList':
-                    return self.__class__.__bases__[0].mt_symbols_whitelist
-                elif name == 'blackList':
-                    return self.__class__.__bases__[0].mt_symbols_blacklist
-                raise AttributeError(f"'MetaTraderConfig' has no attribute '{name}'")
+                
+            @property
+            def symbols(self):
+                class SymbolsConfig:
+                    def __init__(self, parent):
+                        self._parent = parent
+                        self.whiteList = parent.mt_symbols_whitelist
+                        self.blackList = parent.mt_symbols_blacklist
+                return SymbolsConfig(self._parent)
         return MetaTraderConfig(self)
 
     @property
@@ -232,10 +241,10 @@ class SafeConfig:
         return TimerConfig(self)
 
 
-class Settings:
-    """Static settings class for global access"""
+class SettingsManager:
+    """Static settings manager for global access"""
 
-    _instance = None
+    _instance: Optional[SafeConfig] = None
 
     @classmethod
     def get_instance(cls) -> SafeConfig:
@@ -244,10 +253,17 @@ class Settings:
             try:
                 raw_config = cls._load_raw_config()
                 cls._instance = SafeConfig(raw_config)
+                logger.info("Configuration loaded successfully")
             except Exception as e:
                 logger.warning(f"Failed to load configuration, using defaults: {e}")
                 cls._instance = SafeConfig()  # Use defaults only
         return cls._instance
+
+    @classmethod
+    def reload(cls):
+        """Force reload configuration"""
+        cls._instance = None
+        return cls.get_instance()
 
     @classmethod
     def _load_raw_config(cls):
@@ -263,6 +279,7 @@ class Settings:
             return {}
 
         # Load and parse configuration
+        logger.info(f"Loading configuration from: {config_file}")
         cfg = config_from_json(config_file, read_from_file=True)
         return cfg
 
@@ -282,108 +299,108 @@ class Settings:
             current_path = os.getcwd()
             return os.path.join(current_path, "settings.json")
 
-    # Static properties for easy access
-    @staticmethod
-    def telegram_api_id() -> int:
-        return Settings.get_instance().telegram_api_id
+    # Static method accessors (these call the instance)
+    @classmethod
+    def telegram_api_id(cls) -> int:
+        return cls.get_instance().telegram_api_id
 
-    @staticmethod
-    def telegram_api_hash() -> str:
-        return Settings.get_instance().telegram_api_hash
+    @classmethod
+    def telegram_api_hash(cls) -> str:
+        return cls.get_instance().telegram_api_hash
 
-    @staticmethod
-    def telegram_channels_whitelist() -> List[str]:
-        return Settings.get_instance().telegram_channels_whitelist
+    @classmethod
+    def telegram_channels_whitelist(cls) -> List[str]:
+        return cls.get_instance().telegram_channels_whitelist
 
-    @staticmethod
-    def telegram_channels_blacklist() -> List[str]:
-        return Settings.get_instance().telegram_channels_blacklist
+    @classmethod
+    def telegram_channels_blacklist(cls) -> List[str]:
+        return cls.get_instance().telegram_channels_blacklist
 
-    @staticmethod
-    def notification_token() -> str:
-        return Settings.get_instance().notification_token
+    @classmethod
+    def notification_token(cls) -> str:
+        return cls.get_instance().notification_token
 
-    @staticmethod
-    def notification_chat_id() -> int:
-        return Settings.get_instance().notification_chat_id
+    @classmethod
+    def notification_chat_id(cls) -> int:
+        return cls.get_instance().notification_chat_id
 
-    @staticmethod
-    def mt_server() -> str:
-        return Settings.get_instance().mt_server
+    @classmethod
+    def mt_server(cls) -> str:
+        return cls.get_instance().mt_server
 
-    @staticmethod
-    def mt_username() -> int:
-        return Settings.get_instance().mt_username
+    @classmethod
+    def mt_username(cls) -> int:
+        return cls.get_instance().mt_username
 
-    @staticmethod
-    def mt_password() -> str:
-        return Settings.get_instance().mt_password
+    @classmethod
+    def mt_password(cls) -> str:
+        return cls.get_instance().mt_password
 
-    @staticmethod
-    def mt_path() -> str:
-        return Settings.get_instance().mt_path
+    @classmethod
+    def mt_path(cls) -> str:
+        return cls.get_instance().mt_path
 
-    @staticmethod
-    def mt_lot() -> str:
-        return Settings.get_instance().mt_lot
+    @classmethod
+    def mt_lot(cls) -> str:
+        return cls.get_instance().mt_lot
 
-    @staticmethod
-    def mt_high_risk() -> bool:
-        return Settings.get_instance().mt_high_risk
+    @classmethod
+    def mt_high_risk(cls) -> bool:
+        return cls.get_instance().mt_high_risk
 
-    @staticmethod
-    def mt_save_profits() -> List[int]:
-        return Settings.get_instance().mt_save_profits
+    @classmethod
+    def mt_save_profits(cls) -> List[int]:
+        return cls.get_instance().mt_save_profits
 
-    @staticmethod
-    def mt_account_size() -> Optional[float]:
-        return Settings.get_instance().mt_account_size
+    @classmethod
+    def mt_account_size(cls) -> Optional[float]:
+        return cls.get_instance().mt_account_size
 
-    @staticmethod
-    def mt_closer_price() -> float:
-        return Settings.get_instance().mt_closer_price
+    @classmethod
+    def mt_closer_price(cls) -> float:
+        return cls.get_instance().mt_closer_price
 
-    @staticmethod
-    def mt_expire_pending_orders_minutes() -> Optional[int]:
-        return Settings.get_instance().mt_expire_pending_orders_minutes
+    @classmethod
+    def mt_expire_pending_orders_minutes(cls) -> Optional[int]:
+        return cls.get_instance().mt_expire_pending_orders_minutes
 
-    @staticmethod
-    def mt_close_positions_on_trail() -> bool:
-        return Settings.get_instance().mt_close_positions_on_trail
+    @classmethod
+    def mt_close_positions_on_trail(cls) -> bool:
+        return cls.get_instance().mt_close_positions_on_trail
 
-    @staticmethod
-    def mt_symbol_mappings() -> Dict[str, str]:
-        return Settings.get_instance().mt_symbol_mappings
+    @classmethod
+    def mt_symbol_mappings(cls) -> Dict[str, str]:
+        return cls.get_instance().mt_symbol_mappings
 
-    @staticmethod
-    def mt_symbols_whitelist() -> List[str]:
-        return Settings.get_instance().mt_symbols_whitelist
+    @classmethod
+    def mt_symbols_whitelist(cls) -> List[str]:
+        return cls.get_instance().mt_symbols_whitelist
 
-    @staticmethod
-    def mt_symbols_blacklist() -> List[str]:
-        return Settings.get_instance().mt_symbols_blacklist
+    @classmethod
+    def mt_symbols_blacklist(cls) -> List[str]:
+        return cls.get_instance().mt_symbols_blacklist
 
-    @staticmethod
-    def disable_cache() -> bool:
-        return Settings.get_instance().disable_cache
+    @classmethod
+    def disable_cache(cls) -> bool:
+        return cls.get_instance().disable_cache
 
-    @staticmethod
-    def timer_start() -> Optional[str]:
-        return Settings.get_instance().timer_start
+    @classmethod
+    def timer_start(cls) -> Optional[str]:
+        return cls.get_instance().timer_start
 
-    @staticmethod
-    def timer_end() -> Optional[str]:
-        return Settings.get_instance().timer_end
+    @classmethod
+    def timer_end(cls) -> Optional[str]:
+        return cls.get_instance().timer_end
 
+
+# Create module-level aliases for backward compatibility
+Settings = SettingsManager
 
 # Global instance for easy access
-settings = Settings.get_instance()
-
-# Backward compatibility aliases
-SettingsManager = Settings
+settings = SettingsManager.get_instance()
 
 # Backward compatibility functions
 @logger.catch
 def GetSettings():
     """Legacy function for backward compatibility"""
-    return Settings.get_instance()
+    return SettingsManager.get_instance()
