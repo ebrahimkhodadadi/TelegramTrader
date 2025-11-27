@@ -38,9 +38,9 @@ signal_repo = _signal_repo.repository
 position_repo = _position_repo.repository
 
 # Legacy migration function
-def DoMigrations():
+def DoMigrations(config=None):
     """Legacy migration function"""
-    _DoMigrations()
+    _DoMigrations(config)
 
 
 # Legacy query functions for backward compatibility
