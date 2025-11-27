@@ -252,7 +252,7 @@ class TelegramClientManager:
         try:
             from Configure.settings.Settings import Settings
             white_list = Settings.telegram_channels_whitelist()
-            black_list = cfg.Telegram.channels.blackList
+            black_list = Settings.telegram_channels_blacklist()
 
             # Check whitelist (if specified)
             if white_list:
