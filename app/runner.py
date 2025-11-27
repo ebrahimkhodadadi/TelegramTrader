@@ -19,7 +19,8 @@ import sys
 from typing import NoReturn
 from loguru import logger
 
-from Configure import GetSettings, ConfigLogger, ConfigNotification
+from Configure.settings import Settings
+from Configure import ConfigLogger, ConfigNotification
 from Database import DoMigrations
 from Helper import can_access_telegram
 from Telegram.Telegram import TelegramClientManager
@@ -92,7 +93,7 @@ class ApplicationRunner:
         """Load and validate application configuration"""
         # logger.info("Loading configuration...")
         try:
-            self.settings = GetSettings()
+            self.settings = Settings.get_instance()
             # logger.success("Configuration loaded successfully")
         except Exception as e:
             logger.critical(f"Failed to load configuration: {e}")

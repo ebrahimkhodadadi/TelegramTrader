@@ -17,7 +17,7 @@ from loguru import logger
 from enum import Enum
 
 from Analayzer import parse_message, extract_price
-from Configure import GetSettings
+from Configure.settings import Settings
 from Database import Migrations
 from Helper import is_now_between
 from MetaTrader import Trade, RiskFreePositions, Update_last_signal, Update_signal, Close_half_signal, Delete_signal
@@ -74,17 +74,11 @@ class MessageHandler:
     def _is_trading_allowed() -> bool:
         """Check if trading is allowed based on configured hours"""
         try:
-            cfg = GetSettings()
-            timer_config = getattr(cfg, "Timer", None)
-
-            if timer_config is None:
-                return True  # No timer restriction
-
-            start_time = getattr(timer_config, 'start', None)
-            end_time = getattr(timer_config, 'end', None)
+            start_time = Settings.timer_start()
+            end_time = Settings.timer_end()
 
             if not start_time or not end_time:
-                return True
+                return True  # No timer restriction
 
             if not is_now_between(start_time, end_time):
                 logger.warning(f"Trading not allowed. Current time outside {start_time} - {end_time}")
@@ -164,21 +158,8 @@ class MessageHandler:
     def _is_symbol_allowed(symbol: str) -> bool:
         """Check if a symbol is allowed based on whitelist/blacklist configuration"""
         try:
-            cfg = GetSettings()
-            metatrader_config = cfg.MetaTrader
-            if not metatrader_config:
-                return True  # No filtering configured
-
-            symbols_config = metatrader_config.symbols
-            if not symbols_config:
-                return True  # No symbol filtering configured
-
-            white_list = None
-            if symbols_config.whiteList:
-                white_list = symbols_config.whiteList
-            black_list = None
-            if black_list:
-                black_list = symbols_config.blackList
+            white_list = Settings.mt_symbols_whitelist()
+            black_list = Settings.mt_symbols_blacklist()
 
             # Check blacklist first (always takes precedence)
             if black_list:

@@ -17,12 +17,25 @@ class MonitoringManager:
     @staticmethod
     async def monitor_all_accounts():
         """Monitor all accounts concurrently"""
-        from Configure import GetSettings
+        from Configure.settings import Settings
         from ..connection import AccountConfig
         from ..MetaTrader import MetaTrader
 
-        cfg = GetSettings()
-        account = AccountConfig(cfg["MetaTrader"])
+        account = AccountConfig({
+            'server': Settings.mt_server(),
+            'username': Settings.mt_username(),
+            'password': Settings.mt_password(),
+            'path': Settings.mt_path(),
+            'lot': Settings.mt_lot(),
+            'HighRisk': Settings.mt_high_risk(),
+            'SaveProfits': Settings.mt_save_profits(),
+            'AccountSize': Settings.mt_account_size(),
+            'CloserPrice': Settings.mt_closer_price(),
+            'expirePendinOrderInMinutes': Settings.mt_expire_pending_orders_minutes(),
+            'ClosePositionsOnTrail': Settings.mt_close_positions_on_trail(),
+            'disableCache': Settings.mt_disable_cache(),
+            'SymbolMappings': Settings.mt_symbol_mappings()
+        })
 
         # Create tasks for all accounts
         tasks = []

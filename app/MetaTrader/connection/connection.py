@@ -128,8 +128,8 @@ class ConnectionManager:
         if not matches:
             return symbol
 
-        cfg = Configure.GetSettings()
-        mappings = cfg.MetaTrader.SymbolMappings
+        from Configure.settings import Settings
+        mappings = Settings.mt_symbol_mappings()
 
         if symbol in mappings:
             exact = mappings[symbol]

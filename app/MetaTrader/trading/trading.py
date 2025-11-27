@@ -13,11 +13,24 @@ class TradingOperations:
         """Execute a complete trading operation"""
         # logger.debug(f"Processing trade signal: {actionType.name} {symbol}")
 
-        from Configure import GetSettings
+        from Configure.settings import Settings
         from ..MetaTrader import MetaTrader
 
-        cfg = GetSettings()
-        mtAccount = AccountConfig(cfg["MetaTrader"])
+        mtAccount = AccountConfig({
+            'server': Settings.mt_server(),
+            'username': Settings.mt_username(),
+            'password': Settings.mt_password(),
+            'path': Settings.mt_path(),
+            'lot': Settings.mt_lot(),
+            'HighRisk': Settings.mt_high_risk(),
+            'SaveProfits': Settings.mt_save_profits(),
+            'AccountSize': Settings.mt_account_size(),
+            'CloserPrice': Settings.mt_closer_price(),
+            'expirePendinOrderInMinutes': Settings.mt_expire_pending_orders_minutes(),
+            'ClosePositionsOnTrail': Settings.mt_close_positions_on_trail(),
+            'disableCache': Settings.mt_disable_cache(),
+            'SymbolMappings': Settings.mt_symbol_mappings()
+        })
 
         # Convert action type
         if actionType.value == 1:  # buy
@@ -168,11 +181,24 @@ class TradingOperations:
         logger.info(
             f"Applying risk-free strategy for chat {chat_id}, message {message_id}")
 
-        from Configure import GetSettings
+        from Configure.settings import Settings
         from ..MetaTrader import MetaTrader
 
-        cfg = GetSettings()
-        mtAccount = AccountConfig(cfg["MetaTrader"])
+        mtAccount = AccountConfig({
+            'server': Settings.mt_server(),
+            'username': Settings.mt_username(),
+            'password': Settings.mt_password(),
+            'path': Settings.mt_path(),
+            'lot': Settings.mt_lot(),
+            'HighRisk': Settings.mt_high_risk(),
+            'SaveProfits': Settings.mt_save_profits(),
+            'AccountSize': Settings.mt_account_size(),
+            'CloserPrice': Settings.mt_closer_price(),
+            'expirePendinOrderInMinutes': Settings.mt_expire_pending_orders_minutes(),
+            'ClosePositionsOnTrail': Settings.mt_close_positions_on_trail(),
+            'disableCache': Settings.mt_disable_cache(),
+            'SymbolMappings': Settings.mt_symbol_mappings()
+        })
         mt = MetaTrader(
             path=mtAccount.path,
             server=mtAccount.server,
@@ -287,11 +313,24 @@ class TradingOperations:
         logger.info(
             f"Updating stop loss to {stop_loss} for last signal in chat {chat_id}")
 
-        from Configure import GetSettings
+        from Configure.settings import Settings
         from ..MetaTrader import MetaTrader
 
-        cfg = GetSettings()
-        account = AccountConfig(cfg["MetaTrader"])
+        account = AccountConfig({
+            'server': Settings.mt_server(),
+            'username': Settings.mt_username(),
+            'password': Settings.mt_password(),
+            'path': Settings.mt_path(),
+            'lot': Settings.mt_lot(),
+            'HighRisk': Settings.mt_high_risk(),
+            'SaveProfits': Settings.mt_save_profits(),
+            'AccountSize': Settings.mt_account_size(),
+            'CloserPrice': Settings.mt_closer_price(),
+            'expirePendinOrderInMinutes': Settings.mt_expire_pending_orders_minutes(),
+            'ClosePositionsOnTrail': Settings.mt_close_positions_on_trail(),
+            'disableCache': Settings.mt_disable_cache(),
+            'SymbolMappings': Settings.mt_symbol_mappings()
+        })
         mt = MetaTrader(
             path=account.path,
             server=account.server,
@@ -324,11 +363,24 @@ class TradingOperations:
         logger.info(
             f"Updating signal {signal_id} - SL: {stopLoss}, TP: {takeProfits}")
 
-        from Configure import GetSettings
+        from Configure.settings import Settings
         from ..MetaTrader import MetaTrader
 
-        cfg = GetSettings()
-        account = AccountConfig(cfg["MetaTrader"])
+        account = AccountConfig({
+            'server': Settings.mt_server(),
+            'username': Settings.mt_username(),
+            'password': Settings.mt_password(),
+            'path': Settings.mt_path(),
+            'lot': Settings.mt_lot(),
+            'HighRisk': Settings.mt_high_risk(),
+            'SaveProfits': Settings.mt_save_profits(),
+            'AccountSize': Settings.mt_account_size(),
+            'CloserPrice': Settings.mt_closer_price(),
+            'expirePendinOrderInMinutes': Settings.mt_expire_pending_orders_minutes(),
+            'ClosePositionsOnTrail': Settings.mt_close_positions_on_trail(),
+            'disableCache': Settings.mt_disable_cache(),
+            'SymbolMappings': Settings.mt_symbol_mappings()
+        })
         mt = MetaTrader(
             path=account.path,
             server=account.server,
@@ -362,11 +414,24 @@ class TradingOperations:
         """Delete signal and close all related positions"""
         logger.info(f"Deleting signal {signal_id} and closing all positions")
 
-        from Configure import GetSettings
+        from Configure.settings import Settings
         from ..MetaTrader import MetaTrader
 
-        cfg = GetSettings()
-        account = AccountConfig(cfg["MetaTrader"])
+        account = AccountConfig({
+            'server': Settings.mt_server(),
+            'username': Settings.mt_username(),
+            'password': Settings.mt_password(),
+            'path': Settings.mt_path(),
+            'lot': Settings.mt_lot(),
+            'HighRisk': Settings.mt_high_risk(),
+            'SaveProfits': Settings.mt_save_profits(),
+            'AccountSize': Settings.mt_account_size(),
+            'CloserPrice': Settings.mt_closer_price(),
+            'expirePendinOrderInMinutes': Settings.mt_expire_pending_orders_minutes(),
+            'ClosePositionsOnTrail': Settings.mt_close_positions_on_trail(),
+            'disableCache': Settings.mt_disable_cache(),
+            'SymbolMappings': Settings.mt_symbol_mappings()
+        })
         mt = MetaTrader(
             path=account.path,
             server=account.server,
@@ -393,11 +458,24 @@ class TradingOperations:
         """Close half of positions for a signal"""
         logger.info(f"Closing half positions for signal {signal_id}")
 
-        from Configure import GetSettings
+        from Configure.settings import Settings
         from ..MetaTrader import MetaTrader
 
-        cfg = GetSettings()
-        account = AccountConfig(cfg["MetaTrader"])
+        account = AccountConfig({
+            'server': Settings.mt_server(),
+            'username': Settings.mt_username(),
+            'password': Settings.mt_password(),
+            'path': Settings.mt_path(),
+            'lot': Settings.mt_lot(),
+            'HighRisk': Settings.mt_high_risk(),
+            'SaveProfits': Settings.mt_save_profits(),
+            'AccountSize': Settings.mt_account_size(),
+            'CloserPrice': Settings.mt_closer_price(),
+            'expirePendinOrderInMinutes': Settings.mt_expire_pending_orders_minutes(),
+            'ClosePositionsOnTrail': Settings.mt_close_positions_on_trail(),
+            'disableCache': Settings.mt_disable_cache(),
+            'SymbolMappings': Settings.mt_symbol_mappings()
+        })
         mt = MetaTrader(
             path=account.path,
             server=account.server,

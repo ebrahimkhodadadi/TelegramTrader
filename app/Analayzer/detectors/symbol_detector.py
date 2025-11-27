@@ -36,8 +36,8 @@ class SymbolDetector:
             return None
 
         # Check for custom mappings first
-        cfg = Configure.GetSettings()
-        mappings = cfg.MetaTrader.SymbolMappings
+        from Configure.settings import Settings
+        mappings = Settings.mt_symbol_mappings()
 
         if word_upper in mappings:
             exact = mappings[word_upper]
