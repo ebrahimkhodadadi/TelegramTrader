@@ -173,8 +173,12 @@ class MessageHandler:
             if not symbols_config:
                 return True  # No symbol filtering configured
 
-            white_list = symbols_config.whiteList
-            black_list = symbols_config.blackList
+            white_list = None
+            if symbols_config.whiteList:
+                white_list = symbols_config.whiteList
+            black_list = None
+            if black_list:
+                black_list = symbols_config.blackList
 
             # Check blacklist first (always takes precedence)
             if black_list:
@@ -192,7 +196,7 @@ class MessageHandler:
 
         except Exception as e:
             logger.error(f"Error checking symbol permissions: {e}")
-            return True  # Allow symbol on error
+            return False  # Allow symbol on error
 
     @staticmethod
     def _handle_last_edit(chat_id: int, text: str) -> None:
