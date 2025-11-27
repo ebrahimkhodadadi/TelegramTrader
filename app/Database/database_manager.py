@@ -4,20 +4,20 @@ from typing import Optional
 from loguru import logger
 from .repository.signal_repository import SignalRepository
 from .repository.position_repository import PositionRepository
-
+from Configure import GetSettings
 
 class DatabaseManager:
     """Manages database initialization and migrations"""
 
     def __init__(self, db_path: str = "telegramtrader.db", config=None):
+        cfg = GetSettings()
         self.db_path = db_path
         self.config = config
 
         # Check cache settings from MetaTrader config
         disable_cache = False
-        if config and hasattr(config, 'MetaTrader'):
-            mt_config = config.MetaTrader
-            disable_cache = getattr(mt_config, 'disableCache', False)
+        if cfg["disableCache"]:
+            disable_cache = cfg["disableCache"]
 
         # Initialize repositories with cache settings
         enable_cache = not disable_cache
