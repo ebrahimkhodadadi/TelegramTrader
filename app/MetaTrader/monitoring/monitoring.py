@@ -33,7 +33,7 @@ class MonitoringManager:
             'CloserPrice': Settings.mt_closer_price(),
             'expirePendinOrderInMinutes': Settings.mt_expire_pending_orders_minutes(),
             'ClosePositionsOnTrail': Settings.mt_close_positions_on_trail(),
-            'disableCache': Settings.mt_disable_cache(),
+            'disableCache': Settings.disable_cache(),
             'SymbolMappings': Settings.mt_symbol_mappings()
         })
 
