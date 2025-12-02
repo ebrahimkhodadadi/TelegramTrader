@@ -19,10 +19,12 @@ jobs:
         python-version: "3.10"
 
     - name: Install dependencies
-      run: pip install -r requirements.txt
+      run: |
+        pip install -r requirements.txt
+        pip install pyinstaller
 
     - name: Build EXE
-      run: pyinstaller TelegramTrader.spec
+      run: python -m PyInstaller TelegramTrader.spec
 
     - name: Upload EXE as Artifact
       uses: actions/upload-artifact@v4
@@ -47,3 +49,5 @@ jobs:
         tag_name: v${{ github.run_number }}
         name: Release v${{ github.run_number }}
         files: ./dist/*.exe
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
