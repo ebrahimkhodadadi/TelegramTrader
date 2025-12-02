@@ -276,9 +276,11 @@ class TradingOperations:
             # Update stop loss
             sl_result = mt.update_stop_loss(ticket, entry_price)
             if sl_result:
-                logger.debug(f"Closing half position {ticket} for profit protection")
-                # Close half position
-                mt.close_half_position(ticket)
+                # Close half position only if not in high risk mode
+                if mtAccount.HighRisk:
+                    logger.debug(f"Closing half position {ticket} for profit protection")
+                    # Close half position
+                    mt.close_half_position(ticket)
                 return True
             else:
                 logger.warning(f"Failed to update stop loss for position {ticket}")
