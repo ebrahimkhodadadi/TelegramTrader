@@ -158,14 +158,14 @@ class PriceExtractor:
                         numbers = [float(tp.strip()) for tp in re.split(r'[,\s،]+', match)
                                  if tp.strip().isdigit() and '/' not in tp]
                         persian_tp_numbers.extend(numbers)
-                    return set(persian_tp_numbers)
+                    return list(dict.fromkeys(persian_tp_numbers))
 
             # Filter out invalid values
             if not tp_numbers or tp_numbers == [1.0]:
                 return None
 
             # Remove duplicates and invalid values
-            tp_numbers = set(tp_numbers)
+            tp_numbers = list(dict.fromkeys(tp_numbers))
             return {tp for tp in tp_numbers if tp != 1.0}
 
         except Exception:
