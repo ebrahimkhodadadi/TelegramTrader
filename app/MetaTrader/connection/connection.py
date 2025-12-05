@@ -81,8 +81,8 @@ class ConnectionManager:
         """Establish connection to MetaTrader 5 terminal"""
         try:
             if mt5.terminal_info() is not None:
-                logger.info(
-                    f"MT5 terminal already connected for user {self.user}")
+                # logger.info(
+                #     f"MT5 terminal already connected for user {self.user}")
                 return True
 
             logger.info(

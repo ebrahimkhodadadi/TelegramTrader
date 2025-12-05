@@ -96,7 +96,8 @@ class MonitoringManager:
             if signal is None:
                 continue
 
-            # get entry price
+            # get entry price - default to open_price if not found
+            entry_price = signal["open_price"]
             if signal["second_price"] is not None:
                 signal_position = Database.Migrations.get_position_by_signal_id(
                     signal["id"], second=True)
